@@ -84,6 +84,13 @@ Expand on previous chapter with specifics around MPI
 Tips on writing code with portability in mind. I'm not sure exactly what will
 go here, but it seems important to me.
 
+A. Appendix - OpenACC for XX programmers
+----------------------------------------
+Tips for understanding OpenACC if you already have understanding of another parallel programming paradigm.
+* OpenACC for CUDA programmers
+* OpenACC for OpenCL programmers
+* OpenACC for OpenMP programmers
+
 NOTES: 
 ------
 
