@@ -12,8 +12,8 @@ High level overview of compiler directives
 * Should I say something here about the relevance toward OpenMP target
   directives?
 
-2. Porting an application
--------------------------
+2. Accelerating an application
+------------------------------
 Describe the porting process at a high level including APOD
 
 * Assess the code to identify parallelism
