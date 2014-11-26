@@ -14,27 +14,27 @@ The APOD Cycle
 ***Note: we may wish to revisit this module to decide whether APOD is the
 correct approach or some other, similar approach.***
 
-The [http://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html](NVIDIA
-CUDA C Best Practices Guide) introduces a method for accelerating an
-application to a GPU using CUDA. The Assess, Parallelize, Optimize, Deploy
-(APOD) cycle incrementally identifies candidates for GPU acceleration within an
-application, parallelizes each candidate on the GPU, optimizes the resulting
-code, and then deploys it back into the production application before starting
-over. This document will take a similar approach to accelerate applications
-with OpenACC. Each step will be summarized below and revisted in later chapters
-of this guide.
+The [NVIDIA CUDA C Best Practices
+Guide](http://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html)
+introduces a method for accelerating an application to a GPU using CUDA. The
+Assess, Parallelize, Optimize, Deploy (APOD) cycle incrementally identifies
+candidates for GPU acceleration within an application, parallelizes each
+candidate on the GPU, optimizes the resulting code, and then deploys it back
+into the production application before starting over. This document will take a
+similar approach to accelerate applications with OpenACC. Each step will be
+summarized below and revisted in later chapters of this guide.
 
 ### Analyze to Identify Parallelism ###
 Before one can begin to accelerate an application it is important to understand
 in which routines and loops an application is spending the bulk of its time and
 why. It is critical to understand the most timeconsuming parts of the
-application to maximize the benefit of acceleration. Amdahl's Law\[add
-reference\] informs us that the speed-up achievable from running an application
-on a parallel accelerator will be limited by the remaining serial code. In
-other words, the application will see the most benefit by accelerating as much
-of the code as possible and by prioritizing the most time-consuming parts. A
-variety of tools may be used to identify important parts of the code, including
-simple application timers.
+application to maximize the benefit of acceleration. Amdahl's Law [see @amdahl]
+informs us that the speed-up achievable from running an application on a
+parallel accelerator will be limited by the remaining serial code. In other
+words, the application will see the most benefit by accelerating as much of the
+code as possible and by prioritizing the most time-consuming parts. A variety
+of tools may be used to identify important parts of the code, including simple
+application timers.
 
 ### Parallelize using OpenACC Directives ###
 Once important regions of the code have been identified, OpenACC directives
@@ -80,7 +80,23 @@ benefit of acceleration.
 This process is by no means the only way to accelerate using OpenACC, but it
 has been proven successful in numerous applications. Doing the same steps in
 different orders may cause both frustration and difficulty debugging, so it's
-advisable to give perform each step of the process in the order shown above. It
-is critical that when performing these steps the programmer test for
-correctness frequently, as debugging small changes is much simpler than
-debugging large changes.
+advisable to perform each step of the process in the order shown above. It is
+critical that when performing these steps the programmer test for correctness
+frequently, as debugging small changes is much simpler than debugging large
+changes.
+
+Heterogenous Computing Best Practices
+-------------------------------------
+Many applications have been written with little or even no parallelism exposed
+in the code. The applications that do expose parallelism frequently do so in a
+coarse-grained manner, where a small number of threads or processes execute for
+a long time and compute a significant amount work each. Modern many-core
+processors, however, are designed to execute fine-grained threads, which are
+short-lived and execute a minimal amount of work each. These parallel
+architectures achieve high throughput by trading single-threaded performance in
+favor several orders in magnitude more parallelism. This means that when
+accelerating an application with OpenACC, which was primarily designed for use
+with these parallel accelerators, it may be necessary to refactor the code to
+favor tightly-nested loops with a significant amount of data reuse. In many
+cases this same code changes also benefit more traditional CPU architectures as
+well by improving cache use and vectorization.

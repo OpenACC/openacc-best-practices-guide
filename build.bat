@@ -1,0 +1,1 @@
+pandoc.exe -o guide.pdf .\00-Title.markdown .\01-Introduction.markdown .\02-Porting.markdown .\03-Analyze.markdown .\04-Parallelize.markdown .\99-End.markdown --toc --number-sections -V geometry:margin=1in --filter pandoc-citeproc
