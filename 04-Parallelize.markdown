@@ -10,3 +10,11 @@ that follow.
 The Kernels Construct
 ---------------------
 
+The Parallel Construct
+----------------------
+
+The Loop Construct
+------------------
+
+Examples
+--------
