@@ -33,7 +33,7 @@ memory. Figure _ shows a high level diagram of the OpenACC abstract
 accelerator, but remember that the devices and memories may be physically the
 same on some architectures.
 
-    TODO: Insert abstract accelerator diagram
+![OpenACC's Abstract Accelerator Model](images/execution_model2.png)
 
 OpenACC defines three levels of parallelism: *gang*, *worker*, and *vector*.
 Additionally exectution may be marked as being sequential (*seq*). Vector
@@ -44,7 +44,7 @@ with a particular *vector length*, indicating how many datums may being
 operated on with the same instruction. Gang parallelism is coarse-grained
 parallelism, where gangs work independently of each other and may not
 synchronize. Worker parallelism sits between vector and gang levels. A gang
-consists of 1 or more workers, each of which operates on one or more vectors.
+consists of 1 or more workers, each of which operates a vector of some length.
 Within a gang the OpenACC model exposes a cache memory, which can be used by
 all workers and vectors within the gang, and it is legal to synchronize within
 a gang, although OpenACC does not expose synchronization to the user. Using
@@ -55,7 +55,7 @@ loops to the device of interest the compiler will implicitly perform this
 mapping using what it knows about the target device. This makes OpenACC highly
 portable, since the same code may be mapped to any number of target devices.
 
-    TODO: Insert 3-levels of parallelism diagram
+![OpenACC's Three Levels of Parallelism](images/levels_of_parallelism.png)
 
 Benefits and Limitations of Compiler Directives
 -----------------------------------------------

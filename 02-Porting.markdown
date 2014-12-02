@@ -6,9 +6,6 @@ step multiple times, checking the results of each step for correctness. Working
 incrementally will limit the scope of each change for improved productivity and
 debugging.
 
-***NOTE: it seems silly to have just one subsection here, so maybe this needs
-to be reorganized. Should there be a section just on Amdahl?***
-
 The APOD Cycle
 --------------
 ***Note: we may wish to revisit this module to decide whether APOD is the
