@@ -15,4 +15,14 @@ references:
   publisher: ACM
   type: article-journal
   URL: http://dl.acm.org/citation.cfm?doid=1465482.1465560
+- id: parallelkernels
+  title: OpenACC Kernels and Parallel Constructs
+  author:
+  - family: Wolfe
+    given: Michael
+  issued:
+  - year: 2012
+    month: 8
+  container-title: PGI Insider
+  URL: http://www.pgroup.com/lit/articles/insider/v4n2a1.htm
 ---
