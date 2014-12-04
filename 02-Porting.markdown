@@ -109,3 +109,7 @@ is frequently beneficial to assume a discreet memory, even if the device you
 are developing on has a unified memory. This forces data locality to be a
 primary consideration in the refactoring and will ensure that the resulting
 code exploits hierarchical memories and is portable to a wide range of devices.
+
+Case Study - Jacobi Iteration
+-----------------------------
+***Describe the Jacobi iteration here and establish CPU baseline.***

@@ -1,5 +1,7 @@
 Optimize Loops
 ==============
+***Does `async` go here? Where should I put that? Does it deserve its own
+chapter?  Maybe an "Advanced OpenACC Techniques" chapter?***
 
 Efficient Loop Ordering
 -----------------------

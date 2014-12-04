@@ -233,6 +233,11 @@ the burden on the compiler. Both approaches have advantages, so new OpenACC
 programmers should determine for themselves which approach is a better fit for
 them.
 
+Note: For the remainder of the document the phrase *parallel region* will be
+used to describe either a `parallel` or `kernels` region. When refering to the
+`parallel` construct, a terminal font will be used, as shown in this
+sentence.
+
 The Loop Construct
 ------------------
 The `loop` construct gives the compiler additional information about the very
@@ -281,8 +286,11 @@ interest and *variable* should be replaced with the variable being reduced:
     reduction(operator:variable)
 
 
-Case Study
-----------
-***Should I do a case study that is broken up between each chapter or wait until
-the process has been completed and then do a case study walking through the
-process all at once?***
+Case Study - Parallelize
+------------------------
+***Move the jacobi examples from above here and replace the above with simpler
+example.***
+
+### Parallel Loop ###
+
+### Kernels ###
