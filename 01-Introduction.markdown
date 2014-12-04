@@ -33,6 +33,8 @@ memory. Figure _ shows a high level diagram of the OpenACC abstract
 accelerator, but remember that the devices and memories may be physically the
 same on some architectures.
 
+***TODO: Find a way to generate these images as SVG rather than PNG***
+
 ![OpenACC's Abstract Accelerator Model](images/execution_model2.png)
 
 OpenACC defines three levels of parallelism: *gang*, *worker*, and *vector*.

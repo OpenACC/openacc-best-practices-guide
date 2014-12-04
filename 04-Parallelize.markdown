@@ -24,19 +24,28 @@ OpenACC provides two different approaches for exposing parallelism in the code:
 `kernels` and `parallel` regions. Each of these directives will be detailed in
 the sections that follow.
 
+***NOTE: I used the jacobi iteration example in these sections because I had it
+and it shows some of the differences in the two approaches, but I'm concerned
+that there's too much here for a first look at the two directives. On the one
+hand, there's multiple differences I can point to, on the other I'm having to
+explain things like reductions. I'd be interested in feedback about this. Am I
+jumping in too fast or is this the right place to discuss these things? Should
+I just use something simple like SAXPY here and then do the longer example as a
+standalone example at the end of this chapter?***
+
 The Parallel Construct
 ----------------------
 The `parallel` construct identifies a region of code that will be parallelized
 across OpenACC gangs. By itself the a `parallel` region is of limited use, but
-when paired with the `loop` directive (discussed later) the compiler will
-generate a parallel version of the loop for the accelerator. These two
-directives can, and frequently are, combined into a single `parallel loop`
-directive. By placing this directive on a loop the programmer asserts that
-affected loop is safe to parallelize however the compiler sees fit for the
+when paired with the `loop` directive (discussed in more detail later) the
+compiler will generate a parallel version of the loop for the accelerator.
+These two directives can, and frequently are, combined into a single `parallel
+loop` directive. By placing this directive on a loop the programmer asserts
+that affected loop is safe to parallelize however the compiler sees fit for the
 target device. The code below demonstrates the use of the `parallel loop`
 combined directive in both C/C++ and Fortran.
 
-    #pragma acc parallel loop 
+    #pragma acc parallel loop
     for( int j = 1; j < n-1; j++)
     {
       #pragma acc loop
@@ -47,7 +56,7 @@ combined directive in both C/C++ and Fortran.
       }
     }
     
-    #pragma acc parallel loop 
+    #pragma acc parallel loop reduction(max:error) 
     for( int j = 1; j < n-1; j++)
     {
       #pragma acc loop
@@ -71,7 +80,7 @@ combined directive in both C/C++ and Fortran.
       end do
     end do
     
-    !$acc parallel loop 
+    !$acc parallel loop reduction(max:error)
     do j=1,m-2
       !$acc loop
       do i=1,n-2
@@ -80,6 +89,26 @@ combined directive in both C/C++ and Fortran.
         error = max( error, abs(A(i,j) - Anew(i,j)) )
       end do
     end do
+
+Notice that in addition to the `parallel loop` directive added to the outer
+loop a `loop` directive was placed on the inner loop. This is because `parallel
+loop` only applies to the next loop, so the innermost loop may not get
+parallelized. Some OpenACC compilers are able to detect the parallelism in the
+inner loop and also parallelize it, but in order to ensure that the OpenACC
+compiler knows that the inner loop is also safe to parallelize the `loop`
+directive is added to the inner loop. It is also necessary to inform the
+compiler that the second loop nest contains a *reduction* on the variable
+`error`. A reduction means that all loop iterations are calculating their own
+value for `error`, but only one of those values is desired. In this case, the
+value that is needed is the maximum of all errors that are calculated. Some
+compilers are able to automatically detect this reduction and act
+appropriately, but for maximum portability and correctness it's best for the
+programmer to explicitly expose this reduction to the compiler as is shown
+above.
+
+Other clauses to the `loop` directive that may further benefit the performance
+of the resulting code will be discussed in a later chapter.  (***TODO: Link to
+later chapter when done.***)
 
 The Kernels Construct
 ---------------------
@@ -133,8 +162,12 @@ and then accelerate those loops. The code below demonstrates the use of
 Notice that where the `parallel loop` directive required decorating each loop
 with a directive, the `kernels` construct applies to all loops within the
 region. Additionally the `kernels` construct applies to both the `i` and `j`
-loops in the loop nests, whereas the `parallel loop` construct only applies to
-the next loop after the directive, thus requiring a directive on each loop.
+loops in the loop nests, whereas the `parallel loop` construct only directly
+applies to the next loop after the directive, thus requiring a directive on
+each loop.  Additionally it is the compiler's responsibility, rather than the
+programmer's, to discover the reduction on error that was discussed in the
+previous example.
+
 Because the `kernels` directive is more compiler-driven, it gives the compiler
 additional freedom both in identifying where there is parallelism in the code
 and how to map that parallelism to the the accelerator. This also means that
@@ -230,7 +263,26 @@ entering the region. Finally, any variables (scalar or not) that are declared
 within a loop in C or C++ will be made private to the iterations of that loop
 by default.
 
-### reduction ###
+Note: The `parallel` construct also has a parallel clause which will privatize
+the listed variables for each gang in the parallel region. 
 
-Examples
---------
+### reduction ###
+The `reduction` clause works similarly to the `private` clause in that a
+private copy of the affected variable is generated for each loop iteration, but
+`reduction` goes a step further to reduce all of those private copies into one
+final result, which is returned from the region. A maximum reduction was shown
+in the examples above, but other operations may also be performed as part of
+the reduction, such as a sum, minimum, or bitwise operations. A reduction may
+only be specified on a scalar variable and only the following operations may be
+performed (***TODO: grab list of operations***). The format of the reduction
+clause is as follows, where *operator* should be replaced with the operation of
+interest and *variable* should be replaced with the variable being reduced:
+
+    reduction(operator:variable)
+
+
+Case Study
+----------
+***Should I do a case study that is broken up between each chapter or wait until
+the process has been completed and then do a case study walking through the
+process all at once?***
