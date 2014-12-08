@@ -21,17 +21,8 @@ directives.
 ----
 
 OpenACC provides two different approaches for exposing parallelism in the code:
-`kernels` and `parallel` regions. Each of these directives will be detailed in
+`parallel` and `kernels` regions. Each of these directives will be detailed in
 the sections that follow.
-
-***NOTE: I used the jacobi iteration example in these sections because I had it
-and it shows some of the differences in the two approaches, but I'm concerned
-that there's too much here for a first look at the two directives. On the one
-hand, there's multiple differences I can point to, on the other I'm having to
-explain things like reductions. I'd be interested in feedback about this. Am I
-jumping in too fast or is this the right place to discuss these things? Should
-I just use something simple like SAXPY here and then do the longer example as a
-standalone example at the end of this chapter?***
 
 The Parallel Construct
 ----------------------
@@ -39,76 +30,55 @@ The `parallel` construct identifies a region of code that will be parallelized
 across OpenACC gangs. By itself the a `parallel` region is of limited use, but
 when paired with the `loop` directive (discussed in more detail later) the
 compiler will generate a parallel version of the loop for the accelerator.
-These two directives can, and frequently are, combined into a single `parallel
+These two directives can, and most often are, combined into a single `parallel
 loop` directive. By placing this directive on a loop the programmer asserts
 that affected loop is safe to parallelize however the compiler sees fit for the
 target device. The code below demonstrates the use of the `parallel loop`
 combined directive in both C/C++ and Fortran.
 
     #pragma acc parallel loop
-    for( int j = 1; j < n-1; j++)
-    {
-      #pragma acc loop
-      for( int i = 1; i < m-1; i++ )
+      for (i=0; i<N; i++)
       {
-        Anew[j][i] = 0.25 * ( A[j][i+1] + A[j][i-1]
-                            + A[j-1][i] + A[j+1][i]);
+        y[i] = 0.0f;
+        x[i] = (float)(i+1);
       }
-    }
     
-    #pragma acc parallel loop reduction(max:error) 
-    for( int j = 1; j < n-1; j++)
-    {
-      #pragma acc loop
-      for( int i = 1; i < m-1; i++ )
+    #pragma acc parallel loop
+      for (i=0; i<N; i++)
       {
-        A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
-                         + Anew[j-1][i] + Anew[j+1][i]);
-        error = fmax( error, fabs(A[j][i] - Anew[j][i]));
+        y[i] = 2.0f * x[i] + y[i];
       }
-    }
-           
 
-***TODO: Style code examples better.***
+----
 
-    !$acc parallel loop 
-    do j=1,m-2
-      !$acc loop
-      do i=1,n-2
-        Anew(i,j) = 0.25_fp_kind * ( A(i+1,j  ) + A(i-1,j  ) + &
-                                     A(i  ,j-1) + A(i  ,j+1) )
-      end do
-    end do
-    
-    !$acc parallel loop reduction(max:error)
-    do j=1,m-2
-      !$acc loop
-      do i=1,n-2
-        A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
-                                  Anew(i  ,j-1) + Anew(i  ,j+1) )
-        error = max( error, abs(A(i,j) - Anew(i,j)) )
-      end do
-    end do
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 0
+      x(i) = i
+    enddo
+  
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 2.0 * x(i) + y(i)
+    enddo
 
-Notice that in addition to the `parallel loop` directive added to the outer
-loop a `loop` directive was placed on the inner loop. This is because `parallel
-loop` only applies to the next loop, so the innermost loop may not get
-parallelized. Some OpenACC compilers are able to detect the parallelism in the
-inner loop and also parallelize it, but in order to ensure that the OpenACC
-compiler knows that the inner loop is also safe to parallelize the `loop`
-directive is added to the inner loop. It is also necessary to inform the
-compiler that the second loop nest contains a *reduction* on the variable
-`error`. A reduction means that all loop iterations are calculating their own
-value for `error`, but only one of those values is desired. In this case, the
-value that is needed is the maximum of all errors that are calculated. Some
-compilers are able to automatically detect this reduction and act
-appropriately, but for maximum portability and correctness it's best for the
-programmer to explicitly expose this reduction to the compiler as is shown
-above.
+In this example the code is initializing two arrays and then performing a
+simple calculation on them. Notice that each loop needs to be explicitly
+decorated with OpenACC `parallel loop` directives. This is because the
+`parallel` construct relies on the programmer to identify the parallelism in
+the code rather than performing its own compiler analysis of the loops. 
 
-Other clauses to the `loop` directive that may further benefit the performance
-of the resulting code will be discussed in a later chapter.  (***TODO: Link to
-later chapter when done.***)
+*Best Practice:* In the above example it would have also been correct to use a
+single `parallel` construct and simply place `loop` directives on each loop.
+The result of this would be a single parallel kernel that performs both the
+initialization and the calculation. While in this simple example it may make
+sense to do so to reduce the overhead of launching two accelerator kernels, in
+general accelerators tend to work best separate `parallel loop` kernels because
+the compiler and hardware can better balance the use of harware resources. 
+
+***Editor Note: There's a balance between too many small loops and one loop
+that is too resource constrained. The above paragraph should probably do more
+to address that.***
 
 The Kernels Construct
 ---------------------
@@ -118,66 +88,46 @@ compiler to analyze the region, identify which loops are safe to parallelize,
 and then accelerate those loops. The code below demonstrates the use of
 `kernels` in both C/C++ and Fortran.
 
-    #pragma acc kernels 
+    #pragma acc kernels
     {
-      for( int j = 1; j < n-1; j++)
+      for (i=0; i<N; i++)
       {
-        for( int i = 1; i < m-1; i++ )
-        {
-          Anew[j][i] = 0.25 * ( A[j][i+1] + A[j][i-1]
-                              + A[j-1][i] + A[j+1][i]);
-        }
+        y[i] = 0.0f;
+        x[i] = (float)(i+1);
       }
     
-      for( int j = 1; j < n-1; j++)
+      for (i=0; i<N; i++)
       {
-        for( int i = 1; i < m-1; i++ )
-        {
-          A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
-                           + Anew[j-1][i] + Anew[j+1][i]);
-          error = fmax( error, fabs(A[j][i] - Anew[j][i]));
-        }
+        y[i] = 2.0f * x[i] + y[i];
       }
-    }        
+    }
 
-***TODO: Style code examples better.***
+----
 
-    !$acc kernels 
-      do j=1,m-2
-        do i=1,n-2
-          Anew(i,j) = 0.25_fp_kind * ( A(i+1,j  ) + A(i-1,j  ) + &
-                                       A(i  ,j-1) + A(i  ,j+1) )
-        end do
-      end do
-    
-      do j=1,m-2
-        do i=1,n-2
-          A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
-                                    Anew(i  ,j-1) + Anew(i  ,j+1) )
-          error = max( error, abs(A(i,j) - Anew(i,j)) )
-        end do
-      end do
+    !$acc kernels
+    do i=1,N
+      y(i) = 0
+      x(i) = i
+    enddo
+  
+    do i=1,N
+      y(i) = 2.0 * x(i) + y(i)
+    enddo
     !$acc end kernels
 
 Notice that where the `parallel loop` directive required decorating each loop
 with a directive, the `kernels` construct applies to all loops within the
-region. Additionally the `kernels` construct applies to both the `i` and `j`
-loops in the loop nests, whereas the `parallel loop` construct only directly
-applies to the next loop after the directive, thus requiring a directive on
-each loop.  Additionally it is the compiler's responsibility, rather than the
-programmer's, to discover the reduction on error that was discussed in the
-previous example.
-
-Because the `kernels` directive is more compiler-driven, it gives the compiler
-additional freedom both in identifying where there is parallelism in the code
-and how to map that parallelism to the the accelerator. This also means that
-the acceleration of the code is limited by the compiler's ability to identify
-parallelism in the code, which will be discussed further in the next section.
+region. Because the `kernels` directive is more compiler-driven, it gives the
+compiler additional freedom both in identifying where there is parallelism in
+the code and how to map that parallelism to the the accelerator. This also
+means that the acceleration of the code is limited by the compiler's ability to
+identify parallelism in the code, which will be discussed further in the next
+section.
 
 Differences Between Parallel and Kernels
 ----------------------------------------
 One of the biggest points of confusion for new OpenACC programmers is why the
-specification has both the `kernels` and `parallel` directives, which appear to
+specification has both the `parallel` and `kernels` directives, which appear to
 do the same thing. While they are very closely related there are subtle
 differences between them. The `kernels` construct gives the compiler maximum
 leeway to parallelize and optimize the code how it sees fit for the target
@@ -208,7 +158,7 @@ parallelize loops that it would not have otherwise.
 
 Fortran programmers should also note that an OpenACC compiler will parallelize
 Fortran array syntax that is contained in a `kernels` construct. When using
-`parallel` instead it will be necessary to explicitly introduce loops over the
+`parallel` instead, it will be necessary to explicitly introduce loops over the
 elements of the arrays.
 
 One more notable benefit that the `kernels` construct provides is that if data
@@ -218,7 +168,10 @@ again on the host within that region. This means that if multiple loops access
 the same data it will only be copied to the accelerator once. When `parallel
 loop` is used on two subsequent loops that access the same data a compiler may
 or may not copy the data back and forth betwen the host and the device between
-the two loops. 
+the two loops. In the examples shown in the previous section the compiler
+generates data implicit data movement for both parallel loops, but only
+generates data movement once for the `kernels` approach, which may result in
+less data motion by default.
 
 For more information on the differences between the `kernels` and `parallel`
 directives, please see [@parallelkernels].
@@ -231,9 +184,10 @@ programming experience or whose code contains a large number of loops that need
 to be analyzed may find the `kernels` approach much simpler, as it puts more of
 the burden on the compiler. Both approaches have advantages, so new OpenACC
 programmers should determine for themselves which approach is a better fit for
-them.
+them. A programmer may even choose to use `kernels` in one part of the code,
+but `parallel` in another if it makes sense to do so.
 
-Note: For the remainder of the document the phrase *parallel region* will be
+**Note:** For the remainder of the document the phrase *parallel region* will be
 used to describe either a `parallel` or `kernels` region. When refering to the
 `parallel` construct, a terminal font will be used, as shown in this
 sentence.
@@ -250,15 +204,15 @@ and a later chapter will discuss optimization clauses.
 ### private ###
 The private clause specifies that each loop iteration requires its own copy of
 the listed variables. For example, if each loop contains a scalar variable
-named `tmp` that it uses as a temporary value during its calculation then this
+named `tmp` that it uses as a temporary value during its calculation, then this
 variable must be made private to each loop iteration in order to ensure correct
 results. If `tmp` is not declared private, then threads executing different
 loop iterations may access this shared `tmp` variable in unpredictable ways,
 resulting in a race condition and potentially incorrect results. This is not
-limited to scalar variable, but scalars temporaries are a common programming
+limited to scalar variables, but scalar temporaries are a common programming
 pattern.
 
-There are a few things special cases that must be understood about scalar
+There are a few special cases that must be understood about scalar
 variables within loops. First, loop iterators will be privatized by default, so
 they do not need to be listed as private. Second, unless otherwise specified,
 any scalar accessed within a parallel loop will be made *first private* by
@@ -275,22 +229,241 @@ the listed variables for each gang in the parallel region.
 The `reduction` clause works similarly to the `private` clause in that a
 private copy of the affected variable is generated for each loop iteration, but
 `reduction` goes a step further to reduce all of those private copies into one
-final result, which is returned from the region. A maximum reduction was shown
-in the examples above, but other operations may also be performed as part of
-the reduction, such as a sum, minimum, or bitwise operations. A reduction may
-only be specified on a scalar variable and only the following operations may be
-performed (***TODO: grab list of operations***). The format of the reduction
-clause is as follows, where *operator* should be replaced with the operation of
-interest and *variable* should be replaced with the variable being reduced:
+final result, which is returned from the region. For example, the maximum of
+all private copies of the variable may be required or perhaps the sum. A
+reduction may only be specified on a scalar variable and only the following
+operations may be performed (***TODO: grab list of operations***). The format
+of the reduction clause is as follows, where *operator* should be replaced with
+the operation of interest and *variable* should be replaced with the variable
+being reduced:
 
     reduction(operator:variable)
 
-
 Case Study - Parallelize
 ------------------------
-***Move the jacobi examples from above here and replace the above with simpler
-example.***
+In the last chapter we identified the two loop nests within the convergence
+loop as the most time consuming parts of our application.  Additionally we
+looked at the loops and were able to determine that the outer, convergence loop
+is not parallel, the two loops nested within are safe to parallelize. In this
+chapter we will accelerate those loop nests with OpenACC using the directives
+discussed earlier in this chapter. To further emphasize the similarities and
+differences between `parallel` and `kernels` directives, we will accelerate the
+loops using both and discuss the differences.
 
 ### Parallel Loop ###
+In the last chapter we identified the available parallelism in our code, now we
+will use the `parallel loop` directive to accelerate the loops that we
+identified. Since we know that the two, doubly-nested sets of loops are
+parallel, simply add a `parallel loop` directive above both of them. This will
+inform the compiler that the outer of the two loops is safely parallel. Some
+compilers will additionally analyze the inner loop and determine that it is
+also parallel, but to be certain we will also add a `loop` directive around the
+inner loops. 
+
+There is one more subtlty to accelerating the loops in this example: we are
+attempting to calculate the maximum value for the variable `error`. As
+discussed above, this is considered a *reduction* since we are reducing from
+all possible values for `error` down to just the single, maximum. This means
+that it is necessary to indicate a reduction on the first loop nest (the one
+that calculates `error`. 
+
+*Best Practice:* Some compilers will detect the reduction on `error` and
+implicitly insert the `reduction` clause, but for maximum portability the
+programmer should always indicate reductions in the code.
+
+At this point the code loops like the examples below.
+
+    while ( error > tol && iter < iter_max )
+    {
+      error = 0.0;
+      
+      #pragma acc parallel loop reduction(max:error) 
+      for( int j = 1; j < n-1; j++)
+      {
+        #pragma acc loop
+        for( int i = 1; i < m-1; i++ )
+        {
+          A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
+                           + Anew[j-1][i] + Anew[j+1][i]);
+          error = fmax( error, fabs(A[j][i] - Anew[j][i]));
+        }
+      }
+
+      #pragma acc parallel loop
+      for( int j = 1; j < n-1; j++)
+      {
+      #pragma acc loop
+        for( int i = 1; i < m-1; i++ )
+        {
+          A[j][i] = Anew[j][i];
+        }
+      }
+      
+      if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
+      
+      iter++;
+    }
+      
+***TODO: Style code examples better.***
+
+    do while ( error .gt. tol .and. iter .lt. iter_max )
+      error=0.0_fp_kind
+        
+      !$acc parallel loop reduction(max:error)
+      do j=1,m-2
+        !$acc loop
+        do i=1,n-2
+          A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
+                                    Anew(i  ,j-1) + Anew(i  ,j+1) )
+          error = max( error, abs(A(i,j) - Anew(i,j)) )
+        end do
+      end do
+
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
+
+      !$acc parallel loop
+      do j=1,m-2
+        do i=1,n-2
+          A(i,j) = Anew(i,j)
+        end do
+      end do
+    end do
+
+Building the above code using the PGI compiler (version 14.10) produces the
+following compiler feedback (showing for C, but the Fortran output is similar).
+
+    $ pgcc -acc -Minfo=accel laplace2d.c
+    main:
+         56, Accelerator kernel generated
+             57, #pragma acc loop gang /* blockIdx.x */
+             60, #pragma acc loop vector(256) /* threadIdx.x */
+             64, Max reduction generated for error
+         56, Generating present_or_copyout(Anew[1:4094][1:4094])
+             Generating present_or_copyin(A[:][:])
+             Generating Tesla code
+         60, Loop is parallelizable
+         68, Accelerator kernel generated
+             69, #pragma acc loop gang /* blockIdx.x */
+             72, #pragma acc loop vector(256) /* threadIdx.x */
+         68, Generating present_or_copyin(Anew[1:4094][1:4094])
+             Generating present_or_copyout(A[1:4094][1:4094])
+             Generating Tesla code
+         72, Loop is parallelizable
+
+Analyzing the compiler feedback gives the programmer the ability to ensure that
+the compiler is producing the expected code and fix any problems if it's not.
+In the output above we see that accelerator kernels were generated for the two
+loops that were identified (at lines 58 and 71, in the compiled source file)
+and that the compiler automatically generated data movement, which will be
+discussed in more detail in the next chapter.
+
+Other clauses to the `loop` directive that may further benefit the performance
+of the resulting code will be discussed in a later chapter.  (***TODO: Link to
+later chapter when done.***)
 
 ### Kernels ###
+Using the `kernels` construct to accelerate the loops we've identified requires
+inserting just one directive in the code and allowing the compiler to perform
+the parallel analysis. Adding a `kernel` construct around the two computational
+loop nests results in the following code.
+
+    while ( error > tol && iter < iter_max )
+    {
+      error = 0.0;
+      
+      #pragma acc kernels 
+      {
+        for( int j = 1; j < n-1; j++)
+        {
+          for( int i = 1; i < m-1; i++ )
+          {
+            A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
+                             + Anew[j-1][i] + Anew[j+1][i]);
+            error = fmax( error, fabs(A[j][i] - Anew[j][i]));
+          }
+        }
+      }        
+      
+      for( int j = 1; j < n-1; j++)
+      {
+        for( int i = 1; i < m-1; i++ )
+        {
+          A[j][i] = Anew[j][i];
+        }
+      }
+      
+      if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
+      
+      iter++;
+    }
+
+***TODO: Style code examples better.***
+
+    do while ( error .gt. tol .and. iter .lt. iter_max )
+      error=0.0_fp_kind
+        
+      !$acc kernels 
+      do j=1,m-2
+        do i=1,n-2
+          A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
+                                    Anew(i  ,j-1) + Anew(i  ,j+1) )
+          error = max( error, abs(A(i,j) - Anew(i,j)) )
+        end do
+      end do
+        
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
+
+      do j=1,m-2
+        do i=1,n-2
+          A(i,j) = Anew(i,j)
+        end do
+      end do
+      !$acc end kernels
+    end do
+    
+The above code demostrates some of the power that the `kernels` construct
+provides, since the compiler will analyze the code and identify both loop nests
+as parallel and it will automatically discover the reduction on the `error`
+variable without programmer intervention. An OpenACC compiler will likely
+discover not only that the outer loops are parallel, but also the inner loops,
+resulting in more available parallelism with fewer directives than the
+`parallel loop` approach. Taking a look at the compiler output points to
+some more subtle differences between the two approaches.
+
+    $ pgcc -acc -Minfo=accel laplace2d.c
+    main:
+         54, Generating present_or_copyout(Anew[1:4094][1:4094])
+             Generating copyin(A[:][:])
+             Generating copyout(A[1:4094][1:4094])
+             Generating Tesla code
+         57, Loop is parallelizable
+         59, Loop is parallelizable
+             Accelerator kernel generated
+             57, #pragma acc loop gang /* blockIdx.y */
+             59, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
+             63, Max reduction generated for error
+         67, Loop is parallelizable
+         69, Loop is parallelizable
+             Accelerator kernel generated
+             67, #pragma acc loop gang /* blockIdx.y */
+             69, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
+
+The first thing to notice from the above output is that the compiler correctly
+identified all four loops as being parallelizable and generated kernels from
+those loops. Also notice that the compiler only generated implicit data
+movement directives at line 54 (the beginning of the `kernels` region), rather
+than at the beginning of each `parallel loop`. This means that the resulting
+code should perform fewer copies between host and device memory in this version
+than the version from the previous section. A more subtle difference between
+the output is that the compiler chose a different loop decomposition scheme (as
+is evident by the implicit `acc loop` directives in the compiler output) than
+the parallel loop because `kernels` allowed it to do so. More details on how to
+interpret this decomposition feedback and how to change the behavior will be
+discussed in a later chapter.
+
+----
+
+***Add further performance analysis with the above approaches before moving on
+to the next chapter.***

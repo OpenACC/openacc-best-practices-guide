@@ -36,52 +36,35 @@ enable data to be shared between both loop nests as follows.
     #pragma acc data
     {
       #pragma acc parallel loop
-      for( int j = 1; j < n-1; j++)
-      {
-        #pragma acc loop
-        for( int i = 1; i < m-1; i++ )
+        for (i=0; i<N; i++)
         {
-          Anew[j][i] = 0.25 * ( A[j][i+1] + A[j][i-1]
-                              + A[j-1][i] + A[j+1][i]);
+          y[i] = 0.0f;
+          x[i] = (float)(i+1);
         }
-      }
       
-      #pragma acc parallel loop reduction(max:error) 
-      for( int j = 1; j < n-1; j++)
-      {
-        #pragma acc loop
-        for( int i = 1; i < m-1; i++ )
+      #pragma acc parallel loop
+        for (i=0; i<N; i++)
         {
-          A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
-                           + Anew[j-1][i] + Anew[j+1][i]);
-          error = fmax( error, fabs(A[j][i] - Anew[j][i]));
+          y[i] = 2.0f * x[i] + y[i];
         }
-      }
     }
 
+----
 
     !$acc data
-    !$acc parallel loop 
-    do j=1,m-2
-      !$acc loop
-      do i=1,n-2
-        Anew(i,j) = 0.25_fp_kind * ( A(i+1,j  ) + A(i-1,j  ) + &
-                                     A(i  ,j-1) + A(i  ,j+1) )
-      end do
-    end do
-    
-    !$acc parallel loop reduction(max:error)
-    do j=1,m-2
-      !$acc loop
-      do i=1,n-2
-        A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
-                                  Anew(i  ,j-1) + Anew(i  ,j+1) )
-        error = max( error, abs(A(i,j) - Anew(i,j)) )
-      end do
-    end do
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 0
+      x(i) = i
+    enddo
+  
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 2.0 * x(i) + y(i)
+    enddo
     !$acc end data
 
-The `data` region in the above examples enables the `A` and `Anew` arrays to be
+The `data` region in the above examples enables the `x` and `y` arrays to be
 reused between the two `parallel` regions. This will remove any data copies
 that happen between the two regions, but it still does not guarantee optimial
 data movement. In order to provide the information necessary to perform optimal
@@ -95,22 +78,22 @@ created on and copied to or from the device. These clauses may be added to any
 needs of that region of code. The data directives, along with a brief
 description of their meanings, follow.
 
-* Copy - Create space for the listed variables on the device, initialize the
+* `copy` - Create space for the listed variables on the device, initialize the
   variable by copying data to the device at the beginning of the region, copy
   the results back to the host at the end of the region, and finally release
   the space on the device when done.
-* Copyin - Create space for the listed variables on the device, initialize the
+* `copyin` - Create space for the listed variables on the device, initialize the
   variable by copying data to the device at the beginning of the region, and release
   the space on the device when done without copying the data back the the host.
-* Copyout - Create space for the listed variables on the device but do not
+* `copyout` - Create space for the listed variables on the device but do not
   initialize them. At the end of the region, copy the results back to the host and release
   the space on the device.
-* Create - Create space for the listed variables and release it at the end of
+* `create` - Create space for the listed variables and release it at the end of
   the region, but do not copy to or from the device.
-* Present - The listed variables are already present on the device, so no
+* `present` - The listed variables are already present on the device, so no
   further action needs to be taken. This is most frequently used when a data
   region exists in a higher-level routine.
-* Deviceptr - The listed variables use device memory that has been managed
+* `deviceptr` - The listed variables use device memory that has been managed
   outside of OpenACC, therefore the variables should be used on the device
   without any address translation.
 
@@ -128,99 +111,128 @@ specifications. This change will simplify data reuse for the programmer.
 
 With these data clauses it is possible to further improve the example shown
 above by informing the compiler how and when it should perform data transfers.
-The figure below is a screenshot from the Nvidia CUDA Visual Profiler before
-and after adding the data region ***(TODO: Generate figure)***. Notice that
-data movement has been reduced by eliminating the data copies between the two
-regions, but there's still two arrays being copied at the beginning of the data
-region. The output below is compiler feedback from building
-this code using the PGI OpenACC compiler. 
+In this simple example above, the programmer knows that both `x` and `y` will
+be populated with data on the device, so neither will need to be copied to the
+device, but the results of `y` are significant, so it will need to be copied
+back to the host at the end of the calculation. The code below demonstrates
+using the `pcreate` and `pcopyout` directives to describe exactly this data
+locality to the compiler.
 
-         58, Accelerator kernel generated
-             59, #pragma acc loop gang /* blockIdx.x */
-             62, #pragma acc loop vector(256) /* threadIdx.x */
-             66, Max reduction generated for error
-         58, Generating present_or_copyout(Anew[1:4094][1:4094])
-             Generating present_or_copyin(A[:][:])
-             Generating Tesla code
-         62, Loop is parallelizable
-         71, Accelerator kernel generated
-             72, #pragma acc loop gang /* blockIdx.x */
-             75, #pragma acc loop vector(256) /* threadIdx.x */
-         71, Generating present_or_copyin(Anew[1:4094][1:4094])
-             Generating present_or_copyout(A[1:4094][1:4094])
-             Generating Tesla code
-         75, Loop is parallelizable
-
-Notice that at lines 58 and 71, which correspond with the two `parallel` regions, the compiler
-is generating implicit data movement clauses causing the initial value of `A` to
-be copied to the device and the final values of both `A` and `Anew` to be copied
-back from the device. This is because it knows that the initial value of `A` is
-needed for the calculation and that the values of `A` and `Anew` are both
-modified, so it assumes those values are needed back on the CPU. As the
-programmer I know that this is more data motion than is actually necessary, so
-I will add data clauses to the `data` region with my knowledge of how the data
-is actually used.
-
-    #pragma acc data pcreate(Anew) pcopy(A)
+    #pragma acc data pcreate(x) pcopyout(y)
     {
       #pragma acc parallel loop
-      for( int j = 1; j < n-1; j++)
-      {
-        #pragma acc loop
-        for( int i = 1; i < m-1; i++ )
+        for (i=0; i<N; i++)
         {
-          Anew[j][i] = 0.25 * ( A[j][i+1] + A[j][i-1]
-                              + A[j-1][i] + A[j+1][i]);
+          y[i] = 0.0f;
+          x[i] = (float)(i+1);
         }
-      }
       
-      #pragma acc parallel loop reduction(max:error) 
-      for( int j = 1; j < n-1; j++)
-      {
-        #pragma acc loop
-        for( int i = 1; i < m-1; i++ )
+      #pragma acc parallel loop
+        for (i=0; i<N; i++)
         {
-          A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
-                           + Anew[j-1][i] + Anew[j+1][i]);
-          error = fmax( error, fabs(A[j][i] - Anew[j][i]));
+          y[i] = 2.0f * x[i] + y[i];
         }
-      }
     }
 
+----
 
-    !$acc data pcreate(Anew) pcopy(A)
-    !$acc parallel loop 
-    do j=1,m-2
-      !$acc loop
-      do i=1,n-2
-        Anew(i,j) = 0.25_fp_kind * ( A(i+1,j  ) + A(i-1,j  ) + &
-                                     A(i  ,j-1) + A(i  ,j+1) )
-      end do
-    end do
-    
-    !$acc parallel loop reduction(max:error)
-    do j=1,m-2
-      !$acc loop
-      do i=1,n-2
-        A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
-                                  Anew(i  ,j-1) + Anew(i  ,j+1) )
-        error = max( error, abs(A(i,j) - Anew(i,j)) )
-      end do
-    end do
+    !$acc data pcreate(x) pcopyout(y)
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 0
+      x(i) = i
+    enddo
+  
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 2.0 * x(i) + y(i)
+    enddo
     !$acc end data
 
-I've now informed the compiler that the `Anew` array is a temporary array, so
-it should only be created on the device, if it is not already present, and
-never copied between the host and device. For the `A` array I've informed the
-compiler that both the initial data and the final results need to be copied
-between host and device memory. Looking once more at the NVIDIA CUDA Visual
-Profiler, we now see that data movement has been further reduced to only the
-minimal amount needed.
+### Shaping Arrays ###
+Sometimes a compiler will need some extra help determining the size and shape
+of arrays used in parallel or data regions. For the most part, Fortran
+programmers can rely on the self-describing nature of Fortran arrays, but C/C++
+programmers will frequently need to give additional information to the compiler
+so that it will know how large an array to allocate on the device and how much
+data needs to be copied. To give this information the programmer adds a *shape*
+specification to the data clauses. 
+
+In C/C++ the shape of an array is described
+as `x[start:count]` where *start* is the first element to be copied and
+*count* is the number of elements to copy. If the first element is 0, then it
+may be left off. 
+
+In Fortran the shape of an array is described as `x(start:end)` where *start*
+is the first element to be copied and *end* is the last element to be copied.
+If *start* is the beginning of the array or *end* is the end of the array, they
+may be left off. 
+
+Array shaping is frequently necessary in C/C++ codes when the OpenACC appears
+inside of function calls or the arrays are dynamically allocated, since the
+shape of the array will not be known at compile time. Shaping is also useful
+when only a part of the array needs to be stored on the device. 
+
+As an example of array shaping, the code below modifies the previous example by
+adding shape information to each of the arrays.
+
+    #pragma acc data pcreate(x[0:N]) pcopyout(y[0:N])
+    {
+      #pragma acc parallel loop
+        for (i=0; i<N; i++)
+        {
+          y[i] = 0.0f;
+          x[i] = (float)(i+1);
+        }
+      
+      #pragma acc parallel loop
+        for (i=0; i<N; i++)
+        {
+          y[i] = 2.0f * x[i] + y[i];
+        }
+    }
+
+----
+
+    !$acc data pcreate(x(1:N)) pcopyout(y(1:N))
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 0
+      x(i) = i
+    enddo
+  
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 2.0 * x(i) + y(i)
+    enddo
+    !$acc end data
 
 Unstructured Data Lifetimes
 ---------------------------
+While structured data regions are generally sufficient for optimizing the data
+locality in a program, they are not sufficient for some programs, particularly
+those using Object Oriented coding practices. For example, in a C++ class data
+is frequently allocated in a class constructor, deallocated in the destructor,
+and cannot be accessed outside of the class. This makes using structured data
+regions impossible because there is no single, structured scope where the
+construct can be placed.  For these situations OpenACC 2.0 introduced
+unstructured data lifetimes. The `enter data` and `exit data` directives can be
+used to identify precisely when data should be allocated and deallocated on the
+device. 
+
+The `enter data` directive accepts the `create` and `copyin` data clauses and
+may be used to specify when data should be created on the device.
+
+The `exit data` directive accepts the `copyout` and a special `delete` data
+clause to specify when data should be removed from the device. 
+
+Please note that multiple `enter data` directives may place an array on the
+device, but when any `exit data` directive removes it from the device it will
+be immediately removed, regardless of how many `enter data` regions reference
+it.
 
 ### C++ Class Data ###
+C++ class data is the primary 
 
 Update Directive
 ----------------
@@ -230,7 +242,10 @@ Cache Directive
 
 Case Study - Optimize Data Locality
 -----------------------------------
+***Update example from the end of the last chapter with a data region***
 
 ----
+
 ***QUESTION: Should asynchronous overlapping go here or in a separate section?
 It's related to data motion, but not directly***
+

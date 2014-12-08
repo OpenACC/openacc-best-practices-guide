@@ -8,6 +8,10 @@ Efficient Loop Ordering
 
 Mapping Parallelism to the Hardware
 -----------------------------------
+* Gang clause
+* Worder clause
+* Vector clause
+* Seq clause
 
 Collapse Directive
 ------------------
