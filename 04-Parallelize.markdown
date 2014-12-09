@@ -244,11 +244,11 @@ Case Study - Parallelize
 In the last chapter we identified the two loop nests within the convergence
 loop as the most time consuming parts of our application.  Additionally we
 looked at the loops and were able to determine that the outer, convergence loop
-is not parallel, the two loops nested within are safe to parallelize. In this
-chapter we will accelerate those loop nests with OpenACC using the directives
-discussed earlier in this chapter. To further emphasize the similarities and
-differences between `parallel` and `kernels` directives, we will accelerate the
-loops using both and discuss the differences.
+is not parallel, but the two loops nested within are safe to parallelize. In
+this chapter we will accelerate those loop nests with OpenACC using the
+directives discussed earlier in this chapter. To further emphasize the
+similarities and differences between `parallel` and `kernels` directives, we
+will accelerate the loops using both and discuss the differences.
 
 ### Parallel Loop ###
 In the last chapter we identified the available parallelism in our code, now we
@@ -365,8 +365,8 @@ later chapter when done.***)
 ### Kernels ###
 Using the `kernels` construct to accelerate the loops we've identified requires
 inserting just one directive in the code and allowing the compiler to perform
-the parallel analysis. Adding a `kernel` construct around the two computational
-loop nests results in the following code.
+the parallel analysis. Adding a `kernels` construct around the two
+computational loop nests results in the following code.
 
     while ( error > tol && iter < iter_max )
     {
