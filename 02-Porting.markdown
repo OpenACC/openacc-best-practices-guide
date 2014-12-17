@@ -1,13 +1,12 @@
 Accelerating an Application with OpenACC
-========================================
+----------------------------------------
 This section will detail an incremental approach to accelerating an application
 using OpenACC. When taking this approach it is beneficial to revisit each
 step multiple times, checking the results of each step for correctness. Working
 incrementally will limit the scope of each change for improved productivity and
 debugging.
 
-The APOD Cycle
---------------
+### The APOD Cycle ###
 ***Note: we may wish to revisit this module to decide whether APOD is the
 correct approach or some other, similar approach.***
 
@@ -21,7 +20,7 @@ into the production application before starting over. This document will take a
 similar approach to accelerate applications with OpenACC. Each step will be
 summarized below and revisted in later chapters of this guide.
 
-### Analyze to Identify Parallelism ###
+#### Analyze to Identify Parallelism ####
 Before one can begin to accelerate an application it is important to understand
 in which routines and loops an application is spending the bulk of its time and
 why. It is critical to understand the most timeconsuming parts of the
@@ -33,14 +32,14 @@ code as possible and by prioritizing the most time-consuming parts. A variety
 of tools may be used to identify important parts of the code, including simple
 application timers.
 
-### Parallelize using OpenACC Directives ###
+#### Parallelize using OpenACC Directives ####
 Once important regions of the code have been identified, OpenACC directives
 should be used to accelerate these regions on the target device. Parallel loops
 within the code should be decorated with OpenACC directives to provide OpenACC
 compilers the information necessary to parallelize the code for the target
 architecture.
 
-### Optimize Data Locality ###
+#### Optimize Data Locality ####
 Because many accelerated architectures, such as CPU + GPU architectures, use
 distinct memory spaces for the *host* and *device* it is necessary for the
 compiler to manage data in both memories and move the data between the two
@@ -53,7 +52,7 @@ long as possible and is only moved between the two memories when absolutely
 necessary. Programmers will often realize the largest performance gains after
 optimizing data movement during this step.
 
-### Optimize Loops ###
+#### Optimize Loops ####
 Compilers will make decisions about how to map the parallelism in the code to
 the target accelerator based on internal heuristics and the limited knowledge
 it has about the application. Sometimes additional performance can be gained by
@@ -65,7 +64,7 @@ the accelerator or to reduce the frequency of data movement. Frequently code
 refactoring that was motivated by improving performance on parallel
 accelerators bring benefit to traditional CPUs as well.
 
-### Deploy ###
+#### Deploy ####
 Once an important portion of the application has been accelerated by the above
 steps the programmer should check for correctness and return to the analysis
 step to identify the next important region of the code to accelerate. It is
@@ -82,8 +81,7 @@ critical that when performing these steps the programmer test for correctness
 frequently, as debugging small changes is much simpler than debugging large
 changes.
 
-Heterogenous Computing Best Practices
--------------------------------------
+### Heterogenous Computing Best Practices ###
 Many applications have been written with little or even no parallelism exposed
 in the code. The applications that do expose parallelism frequently do so in a
 coarse-grained manner, where a small number of threads or processes execute for
