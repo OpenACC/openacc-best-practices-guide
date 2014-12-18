@@ -27,7 +27,7 @@ the sections that follow.
 The Parallel Construct
 ----------------------
 The `parallel` construct identifies a region of code that will be parallelized
-across OpenACC gangs. By itself the a `parallel` region is of limited use, but
+across OpenACC *gangs*. By itself the a `parallel` region is of limited use, but
 when paired with the `loop` directive (discussed in more detail later) the
 compiler will generate a parallel version of the loop for the accelerator.
 These two directives can, and most often are, combined into a single `parallel
@@ -72,8 +72,8 @@ the code rather than performing its own compiler analysis of the loops.
 single `parallel` construct and simply place `loop` directives on each loop.
 The result of this would be a single parallel kernel that performs both the
 initialization and the calculation. While in this simple example it may make
-sense to do so to reduce the overhead of launching two accelerator kernels, in
-general accelerators tend to work best separate `parallel loop` kernels because
+sense to do so to reduce the overhead of launching two simple accelerator kernels, in
+general accelerators tend to work best with separate `parallel loop` kernels because
 the compiler and hardware can better balance the use of harware resources. 
 
 ***Editor Note: There's a balance between too many small loops and one loop
@@ -139,7 +139,11 @@ that it is both safe and desirable to parallelize the affected loop. This
 relies on the programmer to have correctly identified parallelism in the code
 and remove anything in the code that may be unsafe to parallelize. If the
 programmer asserts incorrectly that the loop may be parallelized then the
-resulting application may produce incorrect results.
+resulting application may produce incorrect results. 
+
+To put things another way: the `kernels` construct may be thought of as a hint
+to the compiler of where it should look for parallelism while the `parallel`
+directive is an assertion to the compiler of where there is parallelism.
 
 An important thing to note about the `kernels` construct is that the compiler
 will analyze the code and only parallelize when it is certain that it is safe
@@ -150,11 +154,12 @@ the loop is safely parallel. For example, in the case of C/C++ code, where
 arrays are passed into functions as pointers, the compiler may not always be
 able to determine that two arrays do not share the same memory, otherwise known
 as *pointer aliasing*. If the compiler cannot know that two pointers are not
-aliased it will not be able to parallelize a loop that accesses those arrays. C
-programmers should use the `restrict` keyword (or the `__restrict` dectorator
-in C++) whenever possible to inform the compiler that the pointers are not
-aliased, which will frequently give the compiler enough information to then
-parallelize loops that it would not have otherwise. 
+aliased it will not be able to parallelize a loop that accesses those arrays. 
+
+*Best Practice:* C programmers should use the `restrict` keyword (or the
+`__restrict` dectorator in C++) whenever possible to inform the compiler that
+the pointers are not aliased, which will frequently give the compiler enough
+information to then parallelize loops that it would not have otherwise. 
 
 Fortran programmers should also note that an OpenACC compiler will parallelize
 Fortran array syntax that is contained in a `kernels` construct. When using
@@ -167,11 +172,14 @@ remain on the device for the full extent of the region, or until it is needed
 again on the host within that region. This means that if multiple loops access
 the same data it will only be copied to the accelerator once. When `parallel
 loop` is used on two subsequent loops that access the same data a compiler may
-or may not copy the data back and forth betwen the host and the device between
+or may not copy the data back and forth between the host and the device between
 the two loops. In the examples shown in the previous section the compiler
-generates data implicit data movement for both parallel loops, but only
+generates implicit data movement for both parallel loops, but only
 generates data movement once for the `kernels` approach, which may result in
 less data motion by default.
+
+***Add compiler output to the above, it will illustrate the differences in
+implicit data movement.***
 
 For more information on the differences between the `kernels` and `parallel`
 directives, please see [@parallelkernels].
@@ -212,6 +220,9 @@ resulting in a race condition and potentially incorrect results. This is not
 limited to scalar variables, but scalar temporaries are a common programming
 pattern.
 
+***Add example using private and clarify why private is needed in light of the
+firstprivate statement below.***
+
 There are a few special cases that must be understood about scalar
 variables within loops. First, loop iterators will be privatized by default, so
 they do not need to be listed as private. Second, unless otherwise specified,
@@ -222,7 +233,7 @@ entering the region. Finally, any variables (scalar or not) that are declared
 within a loop in C or C++ will be made private to the iterations of that loop
 by default.
 
-Note: The `parallel` construct also has a parallel clause which will privatize
+Note: The `parallel` construct also has a `private` clause which will privatize
 the listed variables for each gang in the parallel region. 
 
 ### reduction ###
@@ -239,6 +250,8 @@ being reduced:
 
     reduction(operator:variable)
 
+An example of using the `reduction` clause will come in the case study below.
+
 Case Study - Parallelize
 ------------------------
 In the last chapter we identified the two loop nests within the convergence
@@ -254,7 +267,7 @@ will accelerate the loops using both and discuss the differences.
 In the last chapter we identified the available parallelism in our code, now we
 will use the `parallel loop` directive to accelerate the loops that we
 identified. Since we know that the two, doubly-nested sets of loops are
-parallel, simply add a `parallel loop` directive above both of them. This will
+parallel, simply add a `parallel loop` directive above each of them. This will
 inform the compiler that the outer of the two loops is safely parallel. Some
 compilers will additionally analyze the inner loop and determine that it is
 also parallel, but to be certain we will also add a `loop` directive around the
@@ -265,13 +278,13 @@ attempting to calculate the maximum value for the variable `error`. As
 discussed above, this is considered a *reduction* since we are reducing from
 all possible values for `error` down to just the single, maximum. This means
 that it is necessary to indicate a reduction on the first loop nest (the one
-that calculates `error`. 
+that calculates `error`). 
 
 *Best Practice:* Some compilers will detect the reduction on `error` and
 implicitly insert the `reduction` clause, but for maximum portability the
 programmer should always indicate reductions in the code.
 
-At this point the code loops like the examples below.
+At this point the code looks like the examples below.
 
     while ( error > tol && iter < iter_max )
     {
@@ -352,7 +365,7 @@ following compiler feedback (showing for C, but the Fortran output is similar).
          72, Loop is parallelizable
 
 Analyzing the compiler feedback gives the programmer the ability to ensure that
-the compiler is producing the expected code and fix any problems if it's not.
+the compiler is producing the expected results and fix any problems if it's not.
 In the output above we see that accelerator kernels were generated for the two
 loops that were identified (at lines 58 and 71, in the compiled source file)
 and that the compiler automatically generated data movement, which will be
@@ -429,8 +442,14 @@ as parallel and it will automatically discover the reduction on the `error`
 variable without programmer intervention. An OpenACC compiler will likely
 discover not only that the outer loops are parallel, but also the inner loops,
 resulting in more available parallelism with fewer directives than the
-`parallel loop` approach. Taking a look at the compiler output points to
-some more subtle differences between the two approaches.
+`parallel loop` approach. Had the programmer put the `kernels` construct around
+the convergence loop, which we have already determined is not parallel, likely
+would have resulted in the compiler finding no parallelism. Even with the
+`kernels` directive it is necessary for the programmer to do some amount of
+analysis to determine where parallelism may be found.
+
+Taking a look at the compiler output points to some more subtle differences
+between the two approaches.
 
     $ pgcc -acc -Minfo=accel laplace2d.c
     main:
