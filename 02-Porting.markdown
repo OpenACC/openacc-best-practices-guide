@@ -20,7 +20,7 @@ into the production application before starting over. This document will take a
 similar approach to accelerate applications with OpenACC. Each step will be
 summarized below and revisted in later chapters of this guide.
 
-#### Analyze to Identify Parallelism ####
+#### Analyze to Application Performance ####
 Before one can begin to accelerate an application it is important to understand
 in which routines and loops an application is spending the bulk of its time and
 why. It is critical to understand the most timeconsuming parts of the
@@ -89,7 +89,7 @@ a long time and compute a significant amount work each. Modern many-core
 processors, however, are designed to execute fine-grained threads, which are
 short-lived and execute a minimal amount of work each. These parallel
 architectures achieve high throughput by trading single-threaded performance in
-favor several orders in magnitude more parallelism. This means that when
+favor of several orders in magnitude more parallelism. This means that when
 accelerating an application with OpenACC, which was primarily designed for use
 with these parallel accelerators, it may be necessary to refactor the code to
 favor tightly-nested loops with a significant amount of data reuse. In many
@@ -97,13 +97,13 @@ cases this same code changes also benefit more traditional CPU architectures as
 well by improving cache use and vectorization.
 
 OpenACC may be used to accelerate applications on accelerators that have a
-discreet memory or that have a memory space that's shared with the host. Even
+discrete memory or that have a memory space that's shared with the host. Even
 on devices that utilize a shared memory there is frequently still a hierarchy
 of a fast, close memory for the accelerator and a larger, slower memory used by
 the host. For this reason it is important to structure the application code
 maximize reuse of arrays regardless of whether the underlying architecture uses
-discreet or unified memories. When refactoring the code for use with OpenACC it
-is frequently beneficial to assume a discreet memory, even if the device you
+discrete or unified memories. When refactoring the code for use with OpenACC it
+is frequently beneficial to assume a discrete memory, even if the device you
 are developing on has a unified memory. This forces data locality to be a
 primary consideration in the refactoring and will ensure that the resulting
 code exploits hierarchical memories and is portable to a wide range of devices.

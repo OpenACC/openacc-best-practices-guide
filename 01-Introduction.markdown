@@ -11,8 +11,8 @@ accelerated computing.
 Writing Portable Code
 ---------------------
 The current computing landscape is spotted with a variety of computing
-architectures: multi-core CPUs, GPUs, Many-core devices, DSPs, and FPGAs, to name a
-few. It is now commonplace to find not just one, but several of these
+architectures: multi-core CPUs, GPUs, Many-core devices, DSPs, and FPGAs, to
+name a few. It is now commonplace to find not just one, but several of these
 differing architectures within the same machine. Programmers must make
 portability of their code a forethought, otherwise they risk locking their
 application to a single architecture, which may limit the ability to run on
@@ -21,20 +21,20 @@ to the programmer, closer analysis reveals trends that show a lot in common
 between them. The first thing to note is that all of these architectures are
 moving in the direction of more parallelism. CPUs are not only adding CPU cores
 but also expanding the length of their SIMD operations. GPUs have grown to
-require a high degree of SIMT parallelism. It is clear that going forward all
-architectures will require a significant degree of parallelism in order to
-achieve high performance. The next thing to notice is that all of these
-architectures have exposed hierarchies of memory. On CPUs there's the main
-system memory, typically DDR, and multiple layers of cache memory. On GPUs
+require a high degree of block and SIMT parallelism. It is clear that going
+forward all architectures will require a significant degree of parallelism in
+order to achieve high performance. The next thing to notice is that all of
+these architectures have exposed hierarchies of memory. On CPUs there's the
+main system memory, typically DDR, and multiple layers of cache memory. On GPUs
 there's the main CPU memory, the main GPU memory, and various degrees of cache
-or scratchpad memory. Additionally on hybrid architectures, which include two
+or scratchpad memory. Additionally on hybrid architectures, which includes two
 or more different architectures, there exists machines where the two
 architectures have completely separate memories, some with physically separate
 but logically the same memory, and some with fully shared memory.
 
 Because of these complexities, it's important that developers choose a
 programming model that balances the need for portability with the need for
-performance. Below are four programming models of varrying degrees of both
+performance. Below are four programming models of varying degrees of both
 portability and performance. In a real application it's frequently best to use
 a mixture of approaches to ensure a good balance between high portability and
 performance.
@@ -43,15 +43,17 @@ performance.
 
 Standard (and defacto standard) libraries provide the highest degree of
 portability, because the programmer can frequently replace only the library
-used without even changing the source code itself. Since many hardware vendors
-provide highly-tuned versions of common libraries, using libraries can also
-result in very high performance. Although libraries can provide both high
-portability and high performance, few applications are able to use only
-libraries because of their limited scope.
+used without even changing the source code itself when changing compute
+architectures. Since many hardware vendors provide highly-tuned versions of
+common libraries, using libraries can also result in very high performance.
+Although libraries can provide both high portability and high performance, few
+applications are able to use only libraries because of their limited scope.
     
 Some vendors provide additional libraries as a value added for their
 platform, but which implement non-standard APIs. These libraries provide
-high performance, but little portability. 
+high performance, but little portability. Fortunately because libraries provide
+modular APIs, the impact of using non-portable libraries can be isolated to
+limit the impact on overall application portability.
 
 ### Standard Programming Languages ###
 
@@ -91,7 +93,9 @@ result can frequently achieve higher performance. Lower level architectural
 details are exposed and the way that a problem is decomposed to the hardware
 must be explicitly managed with these languages. This is the best option when
 performance goals outweigh portability, as the low-level nature of these
-programming languages frequently makes the resulting code less portable.
+programming languages frequently makes the resulting code less portable. Good
+software engineering practices can reduce the impact these languages have on
+portability.
 
 ----
 
@@ -99,7 +103,7 @@ There is no one programming model that fits all needs. An application developer
 needs to evaluate the priorities of the project and make decisions accordingly.
 A best practice is to begin with the most portable and productive programming
 models and move to lower level programming models only as needed and in a
-modular fasion. In doing so the programmer can accelerate much of the
+modular fashion. In doing so the programmer can accelerate much of the
 application very quickly, which is often more beneficial than attempting to get
 the absolute highest performance out of a particular routine before moving to
 the next. When development time is limited, focusing on accelerating as much of
@@ -124,10 +128,9 @@ architectures available at the time of its inception and into the future,
 OpenACC defines an abstract model for accelerated computing. This model exposes
 multiple levels of parallelism that may appear on a processor as well as a
 hierarchy of memories with varying degrees of speed and addressibility. The
-goal of this model is to ensure that OpenACC will not be applicable to just a
+goal of this model is to ensure that OpenACC will be applicable to more than just a
 particular architecture or even just the architectures in wide availability at
-the time, but to ensure that OpenACC could be used on devices that were not yet
-available. 
+the time, but to ensure that OpenACC could be used on future devices as well. 
 
 At its core OpenACC supports offloading of both computation and data from a
 *host* device to and *accelerator* device. In fact, these devices may be the
