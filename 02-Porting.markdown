@@ -111,3 +111,106 @@ code exploits hierarchical memories and is portable to a wide range of devices.
 Case Study - Jacobi Iteration
 -----------------------------
 ***Describe the Jacobi iteration here and establish CPU baseline.***
+
+Throughout this guide we will use a simple application to demonstrate each step
+of the acceleration process. This application will implement a technique known
+as a Jacobi Iteration (link?), which is a common, iterative technique for
+approximating an answer within some allowable tolerance. In the case of our
+example we will perform a simple stencil calculation where each point
+calculates it value as the mean of its neighbors' values. The calculation will
+continue to iterate until either the maximum change in value between two
+iterations drops below some tolerance level or a maximum number of iterations
+is reached. For the sake of consistent comparison through the document the
+examples will always iteration 1000 times. The main iteration loop for both
+C/C++ and Fortran appears below.
+
+    while ( error > tol && iter < iter_max )
+    {
+        error = 0.0;
+
+        for( int j = 1; j < n-1; j++)
+        {
+            for( int i = 1; i < m-1; i++ )
+            {
+                Anew[j][i] = 0.25 * ( A[j][i+1] + A[j][i-1]
+                                    + A[j-1][i] + A[j+1][i]);
+                error = fmax( error, fabs(Anew[j][i] - A[j][i]));
+            }
+        }
+
+        for( int j = 1; j < n-1; j++)
+        {
+            for( int i = 1; i < m-1; i++ )
+            {
+                A[j][i] = Anew[j][i];
+            }
+        }
+        }
+
+        if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
+
+        iter++;
+    }
+
+---
+
+    do while ( error .gt. tol .and. iter .lt. iter_max )
+      error=0.0_fp_kind
+  
+      do j=1,m-2
+        do i=1,n-2
+          Anew(i,j) = 0.25_fp_kind * ( A(i+1,j  ) + A(i-1,j  ) + &
+                                       A(i  ,j-1) + A(i  ,j+1) )
+          error = max( error, abs(Anew(i,j)-A(i,j)) )
+        end do
+      end do
+  
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
+  
+      do j=1,m-2
+        do i=1,n-2
+          A(i,j) = Anew(i,j)
+        end do
+      end do
+  
+    end do
+
+
+The outermost loop in each example will be referred to as the *convergence
+loop*, since it loops until the answer has converged by reaching some maximum
+error tolerance or number of iterations. Notice that whether or not a loop
+iteration occurs depends on the error value of the previous iteration. Also,
+the values for each element of `A` is calculated based on the values of the
+previous iteration, known as a data dependency. These two facts mean that this
+loop cannot be run in parallel.
+
+The first loop nest within the convergence loop calculates the new value for
+each element based on the current values of its neighbors. Notice that it's
+necessary to store this new value into a different array. If each iteration
+stored the new value back into itself then a data dependency would exist between
+the data elements, as the order each element is calculated would affect the
+final answer. By storing into a temporary array we ensure that all values are
+calculated using the current state of `A` before `A` is updated. As a result,
+each loop iteration is completely independent of each other iteration. These
+loop iterations may safely be run in any order or in parallel and the final
+result would be the same. This loop also calculates a maximum error value. The
+error value is the difference between the new value and the old. If the maximum
+amount of change between two iterations is within some tolerance, the problem
+is considered converged and the outer loop will exit.
+
+The second loop simply updates the value of `A` with the values calculated into
+`Anew`. If this is the last iteration of the convergence loop, `A` will be the
+final, converged value. If the problem has not yet converged, then `A` will
+serve as the input for the next iteration. As with the above loop nest, each
+iteration of this loop nest is independent of each other and is safe to
+parallelize. A common optimization for this method is to use two pointers so
+that with each iteration the pointer to the current and next values will simply
+be swapped to avoid expensive memory copies. For the sake of simplicity the
+example code forgoes this optimization.
+
+In the coming sections we will accelerate this simple application using the
+method described in this document. 
+
+***Can we put the source code to this somewhere externally? Github? We've used
+it in so many workshops and talks, it's been widely seen.***

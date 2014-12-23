@@ -19,7 +19,9 @@ functions, something that is difficult for a compiler to determine.
 The next step in the acceleration process is to provide the compiler with
 additional information about data locality to maximize reuse of data on the
 device and minimize data transfers. It is after this step that most
-applications will observe the benefit of OpenACC acceleration.
+applications will observe the benefit of OpenACC acceleration. This step will
+be primarily beneficial on machine where the host and device have seperate
+memories.
 
 OpenACC Data Regions
 --------------------
@@ -95,7 +97,9 @@ description of their meanings, follow.
   region exists in a higher-level routine.
 * `deviceptr` - The listed variables use device memory that has been managed
   outside of OpenACC, therefore the variables should be used on the device
-  without any address translation.
+  without any address translation. This clause is generally used when OpenACC
+  is mixed with another programming model, as will be discussed in the
+  interoperability chapter.
 
 In addition to these data clauses, OpenACC 1.0 and 2.0 provide `present_or_*`
 clauses (`present_or_copy`, for instance) that inform the compiler to check
@@ -232,7 +236,87 @@ be immediately removed, regardless of how many `enter data` regions reference
 it.
 
 ### C++ Class Data ###
-C++ class data is the primary 
+C++ class data is one of the primary reasons that unstructured data lifetimes
+were added to OpenACC. As described above, the encapsulation provided by
+classes makes it impossible to use a structured `data` region to control the
+locality of the class data. Programmers may choose to use the unstructured data
+lifetime directives or the OpenACC API to control data locality within a C++
+class. Use of the directives is preferable, since they will be safely ignored
+by non-OpenACC compilers, but the API is also available for times when the
+directives are not expressive enough to meet the needs of the programmer. The
+API will not be discussed in this guide, but is well-documented on the OpenACC
+website.
+
+The example below shows a simple C++ class that has a constructor, a
+destructor, and a copy constructor. The data management of these routines has
+been handled using OpenACC directives.
+
+    template <class ctype> class Data
+    {
+      private:
+        /// Length of the data array
+        int len;
+        /// Data array
+        ctype *arr;
+    
+      public:
+        /// Class constructor
+        Data(int length)
+        {
+          len = length;
+          arr = new ctype[len];
+    #pragma acc enter data copyin(this)
+    #pragma acc enter data create(arr[0:len])
+        }
+
+        /// Copy constructor
+        Data(const Data<ctype> &d)
+        {
+          len = d.len;
+          arr = new ctype[len];
+    #pragma acc enter data copyin(this)
+    #pragma acc enter data create(arr[0:len])
+    #pragma acc parallel loop present(arr[0:len],d)
+          for(int i = 0; i < len; i++)
+            arr[i] = d.arr[i];
+        }
+
+        /// Class destructor
+        ~Data()
+        {
+    #pragma acc exit data delete(arr)
+    #pragma acc exit data delete(this)
+          delete arr;
+          len = 0;
+        }
+    };
+
+
+Notice that an `enter data` directive is added to the class constructor to
+handle creating space for the class data on the device. In addition to the data
+array itself the `this` pointer is copied to the device. Copying the `this`
+pointer ensures that the scalar member `len`, which denotes the length of the
+data array `arr`, and the pointer `arr` are available on the accelerator as
+well as the host. It is important to place the `enter data` directive after the
+class data has been initialized. Similarly `exit data` directives are added to
+the destructor to handle cleaning up the device memory. It is important to
+place this directive before array members are freed, because one the host
+copies are free the underlying pointer may become invalid, making it impossible
+to then free the device memory as well. For the same reason the `this` pointer
+should not be removed from the device until after all other memory has been
+released.
+
+The copy constructor is a special case that is worth looking at on its own. The
+copy constructor will be responsible for allocating space on the device for the
+class that it is creating, but it will also rely on data that is managed by the
+class being copied. In this example it is assumed that class being copied is
+also resident on the device. Since OpenACC does not currently provide a
+portable way to copy from one array to another, like a `memcpy` on the host, a
+loop is used to copy each individual element to from one array to the other. An
+important thing to note is that because the data is being copied in a `parallel
+loop` it will only be copied on the device. If the data is also needed on the
+host then an `update` direct, which will be discussed in the next section, will
+be needed.
 
 Update Directive
 ----------------

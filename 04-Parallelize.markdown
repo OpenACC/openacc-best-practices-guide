@@ -264,19 +264,18 @@ similarities and differences between `parallel` and `kernels` directives, we
 will accelerate the loops using both and discuss the differences.
 
 ### Parallel Loop ###
-In the last chapter we identified the available parallelism in our code, now we
-will use the `parallel loop` directive to accelerate the loops that we
-identified. Since we know that the two, doubly-nested sets of loops are
-parallel, simply add a `parallel loop` directive above each of them. This will
-inform the compiler that the outer of the two loops is safely parallel. Some
-compilers will additionally analyze the inner loop and determine that it is
-also parallel, but to be certain we will also add a `loop` directive around the
-inner loops. 
+We previously identified the available parallelism in our code, now we will use
+the `parallel loop` directive to accelerate the loops that we identified. Since
+we know that the two, doubly-nested sets of loops are parallel, simply add a
+`parallel loop` directive above each of them. This will inform the compiler
+that the outer of the two loops is safely parallel. Some compilers will
+additionally analyze the inner loop and determine that it is also parallel, but
+to be certain we will also add a `loop` directive around the inner loops. 
 
 There is one more subtlty to accelerating the loops in this example: we are
 attempting to calculate the maximum value for the variable `error`. As
 discussed above, this is considered a *reduction* since we are reducing from
-all possible values for `error` down to just the single, maximum. This means
+all possible values for `error` down to just the single maximum. This means
 that it is necessary to indicate a reduction on the first loop nest (the one
 that calculates `error`). 
 
@@ -443,8 +442,8 @@ variable without programmer intervention. An OpenACC compiler will likely
 discover not only that the outer loops are parallel, but also the inner loops,
 resulting in more available parallelism with fewer directives than the
 `parallel loop` approach. Had the programmer put the `kernels` construct around
-the convergence loop, which we have already determined is not parallel, likely
-would have resulted in the compiler finding no parallelism. Even with the
+the convergence loop, which we have already determined is not parallel, the
+compiler likely would not have found any available parallelism. Even with the
 `kernels` directive it is necessary for the programmer to do some amount of
 analysis to determine where parallelism may be found.
 
