@@ -118,13 +118,15 @@ specifies that a vector length of 128 should be used on devices of type
 type `acc\device\radeon`. The compiler will choose a default vector length for
 all other device types.
 
+~~~~ {.numberLines}
     #pragma acc parallel loop gang vector \
                 device_type(acc_device_nvidia) vector_length(128) \
                 device_type(acc_device_radeon) vector_length(256)
-      for (i=0; i<N; i++)
-      {
-        y[i] = 2.0f * x[i] + y[i];
-      }
+    for (i=0; i<N; i++)
+    {
+      y[i] = 2.0f * x[i] + y[i];
+    }
+~~~~
 
 Collapse Directive
 ------------------

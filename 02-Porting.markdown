@@ -24,7 +24,7 @@ summarized below and revisted in later chapters of this guide.
 Before one can begin to accelerate an application it is important to understand
 in which routines and loops an application is spending the bulk of its time and
 why. It is critical to understand the most timeconsuming parts of the
-application to maximize the benefit of acceleration. Amdahl's Law [see @amdahl]
+application to maximize the benefit of acceleration. Amdahl's Law
 informs us that the speed-up achievable from running an application on a
 parallel accelerator will be limited by the remaining serial code. In other
 words, the application will see the most benefit by accelerating as much of the
@@ -124,6 +124,7 @@ is reached. For the sake of consistent comparison through the document the
 examples will always iteration 1000 times. The main iteration loop for both
 C/C++ and Fortran appears below.
 
+~~~~ {.numberLines}
     while ( error > tol && iter < iter_max )
     {
         error = 0.0;
@@ -151,9 +152,11 @@ C/C++ and Fortran appears below.
 
         iter++;
     }
+~~~~    
 
 ---
 
+~~~~ {.numberLines}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
   
@@ -175,6 +178,7 @@ C/C++ and Fortran appears below.
       end do
   
     end do
+~~~~
 
 
 The outermost loop in each example will be referred to as the *convergence

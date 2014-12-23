@@ -1,11 +1,7 @@
 Advanced OpenACC Features
 =========================
-***Is this where async goes?***
-
-Routine Directive
------------------
-
-###C++ Class Functions###
+Asynchronous Operation
+----------------------
 
 Atomic Operations
 -----------------

@@ -23,9 +23,9 @@ applications will observe the benefit of OpenACC acceleration. This step will
 be primarily beneficial on machine where the host and device have seperate
 memories.
 
-OpenACC Data Regions
---------------------
-The OpenACC `data` construct facilitates the sharing of data between multiple
+Data Regions
+------------
+The `data` construct facilitates the sharing of data between multiple
 parallel regions. A data region may be added around one or more parallel
 regions in the same function or may be placed at a higher level in the program
 call tree to enable data to be shared between regions in multiple functions.
@@ -35,6 +35,7 @@ section will discuss how to handle cases where a structured construct is not
 useful. A `data` region may be added to the earlier `parallel loop` example to
 enable data to be shared between both loop nests as follows.
 
+~~~~ {.numberLines}
     #pragma acc data
     {
       #pragma acc parallel loop
@@ -50,9 +51,11 @@ enable data to be shared between both loop nests as follows.
           y[i] = 2.0f * x[i] + y[i];
         }
     }
+~~~~
 
 ----
 
+~~~~ {.numberLines}
     !$acc data
     !$acc parallel loop
     do i=1,N
@@ -65,6 +68,7 @@ enable data to be shared between both loop nests as follows.
       y(i) = 2.0 * x(i) + y(i)
     enddo
     !$acc end data
+~~~~
 
 The `data` region in the above examples enables the `x` and `y` arrays to be
 reused between the two `parallel` regions. This will remove any data copies
@@ -122,6 +126,7 @@ back to the host at the end of the calculation. The code below demonstrates
 using the `pcreate` and `pcopyout` directives to describe exactly this data
 locality to the compiler.
 
+~~~~ {.numberLines}
     #pragma acc data pcreate(x) pcopyout(y)
     {
       #pragma acc parallel loop
@@ -137,9 +142,11 @@ locality to the compiler.
           y[i] = 2.0f * x[i] + y[i];
         }
     }
+~~~~
 
 ----
 
+~~~~ {.numberLines}
     !$acc data pcreate(x) pcopyout(y)
     !$acc parallel loop
     do i=1,N
@@ -152,6 +159,7 @@ locality to the compiler.
       y(i) = 2.0 * x(i) + y(i)
     enddo
     !$acc end data
+~~~~
 
 ### Shaping Arrays ###
 Sometimes a compiler will need some extra help determining the size and shape
@@ -180,6 +188,7 @@ when only a part of the array needs to be stored on the device.
 As an example of array shaping, the code below modifies the previous example by
 adding shape information to each of the arrays.
 
+~~~~ {.numberLines}
     #pragma acc data pcreate(x[0:N]) pcopyout(y[0:N])
     {
       #pragma acc parallel loop
@@ -195,9 +204,11 @@ adding shape information to each of the arrays.
           y[i] = 2.0f * x[i] + y[i];
         }
     }
+~~~~
 
 ----
 
+~~~~ {.numberLines}
     !$acc data pcreate(x(1:N)) pcopyout(y(1:N))
     !$acc parallel loop
     do i=1,N
@@ -210,6 +221,7 @@ adding shape information to each of the arrays.
       y(i) = 2.0 * x(i) + y(i)
     enddo
     !$acc end data
+~~~~
 
 Unstructured Data Lifetimes
 ---------------------------
@@ -251,6 +263,7 @@ The example below shows a simple C++ class that has a constructor, a
 destructor, and a copy constructor. The data management of these routines has
 been handled using OpenACC directives.
 
+~~~~ {.numberLines}
     template <class ctype> class Data
     {
       private:
@@ -290,7 +303,7 @@ been handled using OpenACC directives.
           len = 0;
         }
     };
-
+~~~~
 
 Notice that an `enter data` directive is added to the class constructor to
 handle creating space for the class data on the device. In addition to the data
@@ -322,7 +335,7 @@ Update Directive
 ----------------
 Keeping data resident on the accelerator is often key to obtaining high
 performance, but sometimes it's necessary to copy data between host and device
-memories. The OpenACC `update` directive provides a way to explicitly
+memories. The `update` directive provides a way to explicitly
 update the values of host or device memory with the values of the other. This
 can be thought of as syncrhonizing the contents of the two memories. The
 `update` directive accepts a `device` clause for copying data from the host to
@@ -336,6 +349,7 @@ As an example of the `update` directive, below are two routines that may be
 added to the above `Data` class to force a copy from host to device and device
 to host.
 
+~~~~ {.numberLines}
     void update_host()
     {
     #pragma acc update self(arr[0:len])
@@ -346,6 +360,7 @@ to host.
     #pragma acc update device(arr[0:len])
       ;
     }
+~~~~
 
 The update clauses accept an array shape, as already discussed in the data
 clauses section. Although the above example copies the entire `arr` array to or

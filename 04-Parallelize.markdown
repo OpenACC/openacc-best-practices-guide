@@ -36,6 +36,7 @@ that affected loop is safe to parallelize however the compiler sees fit for the
 target device. The code below demonstrates the use of the `parallel loop`
 combined directive in both C/C++ and Fortran.
 
+~~~~ {.numberLines}
     #pragma acc parallel loop
       for (i=0; i<N; i++)
       {
@@ -48,9 +49,11 @@ combined directive in both C/C++ and Fortran.
       {
         y[i] = 2.0f * x[i] + y[i];
       }
+~~~~
 
 ----
 
+~~~~ {.numberLines}
     !$acc parallel loop
     do i=1,N
       y(i) = 0
@@ -61,10 +64,11 @@ combined directive in both C/C++ and Fortran.
     do i=1,N
       y(i) = 2.0 * x(i) + y(i)
     enddo
+~~~~    
 
 In this example the code is initializing two arrays and then performing a
 simple calculation on them. Notice that each loop needs to be explicitly
-decorated with OpenACC `parallel loop` directives. This is because the
+decorated with `parallel loop` directives. This is because the
 `parallel` construct relies on the programmer to identify the parallelism in
 the code rather than performing its own compiler analysis of the loops. 
 
@@ -88,6 +92,7 @@ compiler to analyze the region, identify which loops are safe to parallelize,
 and then accelerate those loops. The code below demonstrates the use of
 `kernels` in both C/C++ and Fortran.
 
+~~~~ {.numberLines}
     #pragma acc kernels
     {
       for (i=0; i<N; i++)
@@ -101,9 +106,11 @@ and then accelerate those loops. The code below demonstrates the use of
         y[i] = 2.0f * x[i] + y[i];
       }
     }
+~~~~    
 
 ----
 
+~~~~ {.numberLines}
     !$acc kernels
     do i=1,N
       y(i) = 0
@@ -114,6 +121,7 @@ and then accelerate those loops. The code below demonstrates the use of
       y(i) = 2.0 * x(i) + y(i)
     enddo
     !$acc end kernels
+~~~~    
 
 Notice that where the `parallel loop` directive required decorating each loop
 with a directive, the `kernels` construct applies to all loops within the
@@ -182,7 +190,7 @@ less data motion by default.
 implicit data movement.***
 
 For more information on the differences between the `kernels` and `parallel`
-directives, please see [@parallelkernels].
+directives, please see [http://www.pgroup.com/lit/articles/insider/v4n2a1.htm].
 
 At this point many programmers will be left wondering which directive they
 should use in their code. More experienced parallel programmers, who may have
@@ -252,6 +260,27 @@ being reduced:
 
 An example of using the `reduction` clause will come in the case study below.
 
+Routine Directive
+-----------------
+Function or subroutine calls within parallel loops can be problematic for
+compilers, since it's not always possible for the compiler to see all of the
+loops at one time. OpenACC 1.0 compilers were forced to either inline all
+routines called within parallel regions or not parallelize loops containing
+routine calls at all. OpenACC 2.0 introduced the `routine` directive to address
+this shortcoming. The `routine` directive gives the compiler the necessary
+information about the function or subroutine and the loops is contains in order
+to parallelize the calling parallel region. The routine directive must be added
+to a function definition informing the compiler of the level of parallelism
+used within the routine. 
+
+***Problem!!! Now that the levels of parallelism aren't discussed until the
+Optimize Loops chapter I don't have the basis needed to discuss routine. Either
+the levels of parallelism needs to return to the introduction or the routine
+directive needs to be moved to after the loops chapter.***
+
+###C++ Class Functions###
+
+
 Case Study - Parallelize
 ------------------------
 In the last chapter we identified the two loop nests within the convergence
@@ -285,6 +314,7 @@ programmer should always indicate reductions in the code.
 
 At this point the code looks like the examples below.
 
+~~~~ {.numberLines}
     while ( error > tol && iter < iter_max )
     {
       error = 0.0;
@@ -315,9 +345,11 @@ At this point the code looks like the examples below.
       
       iter++;
     }
+~~~~    
       
-***TODO: Style code examples better.***
+----
 
+~~~~ {.numberLines}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
         
@@ -341,6 +373,7 @@ At this point the code looks like the examples below.
         end do
       end do
     end do
+~~~~    
 
 Building the above code using the PGI compiler (version 14.10) produces the
 following compiler feedback (showing for C, but the Fortran output is similar).
@@ -380,6 +413,7 @@ inserting just one directive in the code and allowing the compiler to perform
 the parallel analysis. Adding a `kernels` construct around the two
 computational loop nests results in the following code.
 
+~~~~ {.numberLines}
     while ( error > tol && iter < iter_max )
     {
       error = 0.0;
@@ -409,9 +443,11 @@ computational loop nests results in the following code.
       
       iter++;
     }
+~~~~    
 
-***TODO: Style code examples better.***
+----
 
+~~~~ {.numberLines}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
         
@@ -434,6 +470,7 @@ computational loop nests results in the following code.
       end do
       !$acc end kernels
     end do
+~~~~    
     
 The above code demostrates some of the power that the `kernels` construct
 provides, since the compiler will analyze the code and identify both loop nests
