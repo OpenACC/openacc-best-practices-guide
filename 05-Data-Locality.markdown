@@ -320,16 +320,45 @@ be needed.
 
 Update Directive
 ----------------
+Keeping data resident on the accelerator is often key to obtaining high
+performance, but sometimes it's necessary to copy data between host and device
+memories. The OpenACC `update` directive provides a way to explicitly
+update the values of host or device memory with the values of the other. This
+can be thought of as syncrhonizing the contents of the two memories. The
+`update` directive accepts a `device` clause for copying data from the host to
+the device and a `self` directive for updating from the device to local memory,
+which is the host memory, except in the case of nested OpenACC regions. OpenACC
+1.0 had a `host` clause, which is deprecated in OpenACC 2.0 and behaves the
+same as `self`. The `update` directive has other clauses and the more commonly
+used ones will be discussed in a later chapter.
+
+As an example of the `update` directive, below are two routines that may be
+added to the above `Data` class to force a copy from host to device and device
+to host.
+
+    void update_host()
+    {
+    #pragma acc update self(arr[0:len])
+      ;
+    }
+    void update_device()
+    {
+    #pragma acc update device(arr[0:len])
+      ;
+    }
+
+The update clauses accept an array shape, as already discussed in the data
+clauses section. Although the above example copies the entire `arr` array to or
+from the device, a partial array may also be provided to reduce the data
+transfer cost when only part of an array needs to be updated, such as when
+exchanging boundary conditions.
 
 Cache Directive
 ---------------
+***Delaying slightly because the cache directive is still being actively
+improved in the PGI compiler.***
 
 Case Study - Optimize Data Locality
 -----------------------------------
 ***Update example from the end of the last chapter with a data region***
-
-----
-
-***QUESTION: Should asynchronous overlapping go here or in a separate section?
-It's related to data motion, but not directly***
 
