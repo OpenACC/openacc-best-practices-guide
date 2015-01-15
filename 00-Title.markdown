@@ -1,4 +1,4 @@
 ---
 title: OpenACC Porting and Best Practices Guide
-date: December 23, 2014
+date: January 05, 2015
 ---

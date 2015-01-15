@@ -62,14 +62,17 @@ traditional CPU architecture to a more parallel architecture, such as a GPU, it
 may also be necessary to restructure loops to expose additional parallelism for
 the accelerator or to reduce the frequency of data movement. Frequently code
 refactoring that was motivated by improving performance on parallel
-accelerators bring benefit to traditional CPUs as well.
+accelerators is beneficial to traditional CPUs as well.
 
 #### Deploy ####
 Once an important portion of the application has been accelerated by the above
 steps the programmer should check for correctness and return to the analysis
 step to identify the next important region of the code to accelerate. It is
 through repeated application of this cycle that an application will realize the
-benefit of acceleration.
+benefit of acceleration. This document will not discuss steps for deploying the
+code changes from the above sections, since this process is no different than
+deploying other optimizations and will vary according to the practices and
+policies of the code development team.
 
 ---
 
@@ -85,7 +88,7 @@ changes.
 Many applications have been written with little or even no parallelism exposed
 in the code. The applications that do expose parallelism frequently do so in a
 coarse-grained manner, where a small number of threads or processes execute for
-a long time and compute a significant amount work each. Modern many-core
+a long time and compute a significant amount work each. Modern GPUs and many-core
 processors, however, are designed to execute fine-grained threads, which are
 short-lived and execute a minimal amount of work each. These parallel
 architectures achieve high throughput by trading single-threaded performance in
@@ -93,10 +96,10 @@ favor of several orders in magnitude more parallelism. This means that when
 accelerating an application with OpenACC, which was primarily designed for use
 with these parallel accelerators, it may be necessary to refactor the code to
 favor tightly-nested loops with a significant amount of data reuse. In many
-cases this same code changes also benefit more traditional CPU architectures as
+cases these same code changes also benefit more traditional CPU architectures as
 well by improving cache use and vectorization.
 
-OpenACC may be used to accelerate applications on accelerators that have a
+OpenACC may be used to accelerate applications on devices that have a
 discrete memory or that have a memory space that's shared with the host. Even
 on devices that utilize a shared memory there is frequently still a hierarchy
 of a fast, close memory for the accelerator and a larger, slower memory used by
@@ -110,8 +113,6 @@ code exploits hierarchical memories and is portable to a wide range of devices.
 
 Case Study - Jacobi Iteration
 -----------------------------
-***Describe the Jacobi iteration here and establish CPU baseline.***
-
 Throughout this guide we will use a simple application to demonstrate each step
 of the acceleration process. This application will implement a technique known
 as a Jacobi Iteration (link?), which is a common, iterative technique for
@@ -180,7 +181,6 @@ C/C++ and Fortran appears below.
     end do
 ~~~~
 
-
 The outermost loop in each example will be referred to as the *convergence
 loop*, since it loops until the answer has converged by reaching some maximum
 error tolerance or number of iterations. Notice that whether or not a loop
@@ -190,7 +190,7 @@ previous iteration, known as a data dependency. These two facts mean that this
 loop cannot be run in parallel.
 
 The first loop nest within the convergence loop calculates the new value for
-each element based on the current values of its neighbors. Notice that it's
+each element based on the current values of its neighbors. Notice that it is
 necessary to store this new value into a different array. If each iteration
 stored the new value back into itself then a data dependency would exist between
 the data elements, as the order each element is calculated would affect the
@@ -203,9 +203,9 @@ error value is the difference between the new value and the old. If the maximum
 amount of change between two iterations is within some tolerance, the problem
 is considered converged and the outer loop will exit.
 
-The second loop simply updates the value of `A` with the values calculated into
-`Anew`. If this is the last iteration of the convergence loop, `A` will be the
-final, converged value. If the problem has not yet converged, then `A` will
+The second loop nest simply updates the value of `A` with the values calculated
+into `Anew`. If this is the last iteration of the convergence loop, `A` will be
+the final, converged value. If the problem has not yet converged, then `A` will
 serve as the input for the next iteration. As with the above loop nest, each
 iteration of this loop nest is independent of each other and is safe to
 parallelize. A common optimization for this method is to use two pointers so

@@ -24,13 +24,13 @@ but also expanding the length of their SIMD operations. GPUs have grown to
 require a high degree of block and SIMT parallelism. It is clear that going
 forward all architectures will require a significant degree of parallelism in
 order to achieve high performance. The next thing to notice is that all of
-these architectures have exposed hierarchies of memory. On CPUs there's the
-main system memory, typically DDR, and multiple layers of cache memory. On GPUs
-there's the main CPU memory, the main GPU memory, and various degrees of cache
-or scratchpad memory. Additionally on hybrid architectures, which includes two
-or more different architectures, there exists machines where the two
-architectures have completely separate memories, some with physically separate
-but logically the same memory, and some with fully shared memory.
+these architectures have exposed hierarchies of memory. CPUs have the main
+system memory, typically DDR, and multiple layers of cache memory. GPUs have
+the main CPU memory, the main GPU memory, and various degrees of cache or
+scratchpad memory. Additionally on hybrid architectures, which include two or
+more different architectures, there exists machines where the two architectures
+have completely separate memories, some with physically separate but logically
+the same memory, and some with fully shared memory.
 
 Because of these complexities, it's important that developers choose a
 programming model that balances the need for portability with the need for
@@ -42,14 +42,14 @@ performance.
 ### Libraries ###
 
 Standard (and defacto standard) libraries provide the highest degree of
-portability, because the programmer can frequently replace only the library
+portability because the programmer can frequently replace only the library
 used without even changing the source code itself when changing compute
 architectures. Since many hardware vendors provide highly-tuned versions of
 common libraries, using libraries can also result in very high performance.
 Although libraries can provide both high portability and high performance, few
 applications are able to use only libraries because of their limited scope.
     
-Some vendors provide additional libraries as a value added for their
+Some vendors provide additional libraries as a value-added for their
 platform, but which implement non-standard APIs. These libraries provide
 high performance, but little portability. Fortunately because libraries provide
 modular APIs, the impact of using non-portable libraries can be isolated to
@@ -80,9 +80,9 @@ architectures. Frequently, however, these compiler directives are written to
 remain very high level, both for simplicity and portability, meaning that
 performance may lag lower-level programming paradigms. Many developers are
 willing to give up 10-20% of hand-tuned performance in order to get a high
-degree of portability to other architectures. The tolerance for this
-portability/performance trade-off will vary according to the needs of the
-programmer and application.
+degree of portability to other architectures and to enhance programmer
+productivity. The tolerance for this portability/performance trade-off will
+vary according to the needs of the programmer and application.
 
 ### Parallel Programming Extensions ###
 
@@ -142,8 +142,6 @@ accelerator memory management and the transfer of data between host and device
 memory. Figure _ shows a high level diagram of the OpenACC abstract
 accelerator, but remember that the devices and memories may be physically the
 same on some architectures.
-
-***TODO: Find a way to generate these images as SVG rather than PNG***
 
 ![OpenACC's Abstract Accelerator Model](images/execution_model2.png)
 
