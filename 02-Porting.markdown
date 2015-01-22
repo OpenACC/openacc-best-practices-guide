@@ -20,7 +20,7 @@ into the production application before starting over. This document will take a
 similar approach to accelerate applications with OpenACC. Each step will be
 summarized below and revisted in later chapters of this guide.
 
-#### Analyze to Application Performance ####
+#### Assess to Application Performance ####
 Before one can begin to accelerate an application it is important to understand
 in which routines and loops an application is spending the bulk of its time and
 why. It is critical to understand the most timeconsuming parts of the

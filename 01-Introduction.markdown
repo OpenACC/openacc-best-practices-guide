@@ -148,4 +148,40 @@ same on some architectures.
 More details of OpenACC's abstract accelerator model will be presented
 throughout this guide when they are pertinent. 
 
-### Benefits and Limitations of Compiler Directives ###
+----
+
+***Best Practice:*** For developers coming to OpenACC from other accelerator
+programming models, such as CUDA or OpenCL, where host and accelerator memory
+is frequently represented by two distinct variables (`host_A[]` and
+`device_A[]`, for instance), it's important to remember that when using OpenACC
+a variable should be thought of as a single object, regardless of whether the
+it's backed by memory in one or two memory spaces. If one assumes that a
+variable represents two separate memories, depending on where it is used in the
+program, then it is possible to write programs that access the variable in
+unsafe ways, resulting in code that would not be portable to devices that share
+a single memory between the host and device. As with any parallel or
+asynchronous programming paradigm, accessing the same variable from two
+sections of code simultaneously could result in a race condition that produces
+inconsistent results. By assuming that you are always accessing a single
+variable, regardless of how it is stored in memory, the programmer will avoid
+making mistakes that could cost a significant amount of effort to debug.
+
+### Benefits and Limitations of OpenACC ###
+OpenACC is designed to be a high-level, platform independent language for
+programming accelerators. As such, one can develop a single source code that
+can be run on a range of devices and achieve good performance. The simplicity
+and portability that OpenACC's programming model provides sometimes comes at a
+cost to performance. The OpenACC abstract accelerator model defines a least
+common denominator for accelerator devices, but cannot represent architectural
+specifics of these devices without making the language less portable. There
+will always be some optimizations that are possible in a lower-level
+programming model, such as CUDA or OpenCL, that cannot be represented at a high
+level. For instance, although OpenACC has the `cache` directive, some uses of
+*shared memory* on Nvidia GPUs are more easily represented using CUDA. The same
+is true for any host or device: certain optimizations are too low-level for a
+high-level approach like OpenACC. It is up to the developers to determine the
+cost and benefit of selectively using a lower level programming language for
+performance critical sections of code. In cases where performance is too
+critical to take a high-level approach, it's still possible to use OpenACC for
+much of the application, while using another approach in certain places, as
+will be discussed in a later chapter on interoperability.

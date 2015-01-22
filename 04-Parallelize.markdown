@@ -72,7 +72,7 @@ decorated with `parallel loop` directives. This is because the
 `parallel` construct relies on the programmer to identify the parallelism in
 the code rather than performing its own compiler analysis of the loops. 
 
-*Best Practice:* In the above example it would have also been correct to use a
+***Best Practice:*** In the above example it would have also been correct to use a
 single `parallel` construct and simply place `loop` directives on each loop.
 The result of this would be a single parallel kernel that performs both the
 initialization and the calculation. While in this simple example it may make
@@ -164,7 +164,7 @@ able to determine that two arrays do not share the same memory, otherwise known
 as *pointer aliasing*. If the compiler cannot know that two pointers are not
 aliased it will not be able to parallelize a loop that accesses those arrays. 
 
-*Best Practice:* C programmers should use the `restrict` keyword (or the
+***Best Practice:*** C programmers should use the `restrict` keyword (or the
 `__restrict` dectorator in C++) whenever possible to inform the compiler that
 the pointers are not aliased, which will frequently give the compiler enough
 information to then parallelize loops that it would not have otherwise. 
@@ -308,7 +308,7 @@ all possible values for `error` down to just the single maximum. This means
 that it is necessary to indicate a reduction on the first loop nest (the one
 that calculates `error`). 
 
-*Best Practice:* Some compilers will detect the reduction on `error` and
+***Best Practice:*** Some compilers will detect the reduction on `error` and
 implicitly insert the `reduction` clause, but for maximum portability the
 programmer should always indicate reductions in the code.
 

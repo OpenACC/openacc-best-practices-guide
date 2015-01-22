@@ -368,6 +368,46 @@ from the device, a partial array may also be provided to reduce the data
 transfer cost when only part of an array needs to be updated, such as when
 exchanging boundary conditions.
 
+***Best Practice:*** As noted earlier in the document, variables in an OpenACC code
+should always be thought of as a singular object, rather than a *host* copy and
+a *device* copy. Even when developing on a machine with a unified host and
+device memory it is important to include an `update` directive whenever
+accessing data from the host or device that was previous written to by the
+other, it is important to use an `update` directive to ensure correctness on
+all devices.  For systems with distinct memories, the `update` will synchronize
+the values of the affected variable on the host and the device. On devices with
+a unified memory, the update will be ignored, incurring no performance penalty.
+In the example below, omiting the `update` on line 17 will produce different
+results on a unified and non-unified memory machine, making the code
+non-portable.
+
+
+~~~~ {.numberLines}
+    for(int i=0; i<N; i++)
+    {
+      a[i] = 0;
+      b[i] = 0;
+    }
+    
+    #pragma acc enter data copyin(a[0:N])
+    
+    #pragma acc parallel loop
+    {
+      for(int i=0; i<N; i++)
+      {
+        a[i] = 1; 
+      }
+    }
+    
+    #pragma acc update self(a[0:N])
+    for(int i=0; i<N; i++)
+    {
+      b[i] = a[i];  
+    }
+    
+    #pragma acc exit data
+~~~~
+
 Cache Directive
 ---------------
 ***Delaying slightly because the cache directive is still being actively

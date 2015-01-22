@@ -1,5 +1,5 @@
-Analyze Application Performance
-===============================
+Assess Application Performance
+==============================
 A variety of tools can be used to evaluate application performance and
 which are available will depend on your development environment. From simple
 application timers to graphical performance analyzers, the choice of
