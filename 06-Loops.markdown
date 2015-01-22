@@ -128,8 +128,8 @@ all other device types.
     }
 ~~~~
 
-Collapse Directive
-------------------
+Collapse Clause
+---------------
 When a code contains tightly nested loops it is frequently beneficial to
 *collapse* these loops into a single loop. Collpsing loops means that two loops
 of trip counts N and M respectively will be automatically turned into a single
@@ -148,10 +148,22 @@ the collapse directive.
 
 ***This section will grow when an example is added above.***
 
-Tile Directive
---------------
+Tile Clause
+-----------
 ***NOTE: I'm tempted to leave this off because I've yet to find a case where it
 was beneficial.***
+
+Routine Parallelism
+-------------------
+A previous chapter introduced the `routine` directive for calling functions and
+subroutines from OpenACC parallel regions. In that chapter it was assumed that
+the routine would be called from each loop iteration, therefore requiring a
+`routine seq` directive. In some cases, the routine itself may contain
+parallelism that must be mapped to the device. In these cases, the `routine`
+directive may have a `gang`, `worker`, or `vector` clause instead of `seq` to
+inform the compiler that the routine will contain the specified level of
+parallelism. When the compiler then encounters the call site of the affected
+routine, it will then know how it can parallelize the code to use the routine.
 
 Case Study - Optimize Loops
 ---------------------------
