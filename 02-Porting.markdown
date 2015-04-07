@@ -6,21 +6,59 @@ step multiple times, checking the results of each step for correctness. Working
 incrementally will limit the scope of each change for improved productivity and
 debugging.
 
-### The APOD Cycle ###
-***Note: we may wish to revisit this module to decide whether APOD is the
-correct approach or some other, similar approach.***
+### OpenACC Directive Syntax ###
+This guide will introduce OpenACC directives incrementally, as they become
+useful for the porting process. All OpenACC directives have a common syntax,
+however, with the `acc` sentinal, designating to the compiler that the text
+that follows will be OpenACC, a directive, and clauses to that directive, many
+of which are optional but provide the compiler with additional information. 
 
-The [NVIDIA CUDA C Best Practices
-Guide](http://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html)
-introduces a method for accelerating an application to a GPU using CUDA. The
-Assess, Parallelize, Optimize, Deploy (APOD) cycle incrementally identifies
-candidates for GPU acceleration within an application, parallelizes each
-candidate on the GPU, optimizes the resulting code, and then deploys it back
-into the production application before starting over. This document will take a
-similar approach to accelerate applications with OpenACC. Each step will be
-summarized below and revisted in later chapters of this guide.
+In C and C++, these directives take the form of a pragma. The example code
+below shows the OpenACC `kernels` directive without any additional clauses
 
-#### Assess to Application Performance ####
+~~~~ {.numberLines}
+    #pragma acc kernels
+~~~~
+
+In Fortran, the directives take the form of a special comment, as demonstrated
+below.
+
+~~~~ {.numberLines}
+    !$acc kernels
+~~~~
+
+Some OpenACC directives apply to structured blocks of code, while others are
+executable statements. In C and C++ a block of code can be represented by
+curly braces (`{` and `}`). In Fortran a block of code will begin with an
+OpenACC directive (`!$acc kernels`) and end with a matching ending directive 
+(`!$acc end kernels`).
+
+
+### Porting Cycle ###
+Programmers should take an incremental approach to accelerating applications
+using OpenACC to ensure correctness. This guide will follow the approach of
+first assessing application performance, then using OpenACC to parallelize
+important loops in the code, next optimizing data locality to remove
+unnecessary data migrations between the host and accelerator, and finally
+optimizing loops within the code to maximize performance on a given
+architecture. This approach has been successful in many applications because it
+prioritizes changes that are likely to provide the greatest returns so that the
+programmer can quickly and productively achieve the acceleration. 
+
+There are two important things to note before detailing each step. First, at
+times during this process application performance may actually slow down.
+Developers should not become frustrated if their initial efforts result in a
+loss of performance. As will be explained later, this is generally the result
+of implicit data movement between the host and accelerator, which will be
+optimized as a part of the porting cycle. Second, it is critical that
+developers check the program results for correctness after each change.
+Frequent correctness checks will save a lot of debugging effort, since errors
+can be found and fixed immediately, before they have the chance to compound.
+Some developers may find it beneficial to use a source version control tool to
+snapshot the code after each successful change so that any breaking changes can
+be quickly thrown away and the code returned to a known good state.
+
+#### Assess Application Performance ####
 Before one can begin to accelerate an application it is important to understand
 in which routines and loops an application is spending the bulk of its time and
 why. It is critical to understand the most timeconsuming parts of the
@@ -64,25 +102,12 @@ the accelerator or to reduce the frequency of data movement. Frequently code
 refactoring that was motivated by improving performance on parallel
 accelerators is beneficial to traditional CPUs as well.
 
-#### Deploy ####
-Once an important portion of the application has been accelerated by the above
-steps the programmer should check for correctness and return to the analysis
-step to identify the next important region of the code to accelerate. It is
-through repeated application of this cycle that an application will realize the
-benefit of acceleration. This document will not discuss steps for deploying the
-code changes from the above sections, since this process is no different than
-deploying other optimizations and will vary according to the practices and
-policies of the code development team.
-
 ---
 
 This process is by no means the only way to accelerate using OpenACC, but it
 has been proven successful in numerous applications. Doing the same steps in
 different orders may cause both frustration and difficulty debugging, so it's
-advisable to perform each step of the process in the order shown above. It is
-critical that when performing these steps the programmer test for correctness
-frequently, as debugging small changes is much simpler than debugging large
-changes.
+advisable to perform each step of the process in the order shown above. 
 
 ### Heterogenous Computing Best Practices ###
 Many applications have been written with little or even no parallelism exposed
@@ -113,10 +138,10 @@ code exploits hierarchical memories and is portable to a wide range of devices.
 
 Case Study - Jacobi Iteration
 -----------------------------
-Throughout this guide we will use a simple application to demonstrate each step
-of the acceleration process. This application will implement a technique known
-as a Jacobi Iteration (link?), which is a common, iterative technique for
-approximating an answer within some allowable tolerance. In the case of our
+Throughout this guide we will use simple applications to demonstrate each step
+of the acceleration process. The first such application will implement a
+technique known as a Jacobi Iteration, which is a common, iterative technique
+for approximating an answer within some allowable tolerance. In the case of our
 example we will perform a simple stencil calculation where each point
 calculates it value as the mean of its neighbors' values. The calculation will
 continue to iterate until either the maximum change in value between two
@@ -215,6 +240,3 @@ example code forgoes this optimization.
 
 In the coming sections we will accelerate this simple application using the
 method described in this document. 
-
-***Can we put the source code to this somewhere externally? Github? We've used
-it in so many workshops and talks, it's been widely seen.***

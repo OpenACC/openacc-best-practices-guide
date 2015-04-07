@@ -413,6 +413,14 @@ Cache Directive
 ***Delaying slightly because the cache directive is still being actively
 improved in the PGI compiler.***
 
+Global Data
+-----------
+***Discuss `declare` directive.***
+
+Best Practice: Offload Inefficient Operations to Maintain Data Locality
+-----------------------------------------------------------------------
+***Migrate serial exeuction to the GPU to maintain data on the GPU***
+
 Case Study - Optimize Data Locality
 -----------------------------------
 ***Update example from the end of the last chapter with a data region***

@@ -11,7 +11,7 @@ accelerated computing.
 Writing Portable Code
 ---------------------
 The current computing landscape is spotted with a variety of computing
-architectures: multi-core CPUs, GPUs, Many-core devices, DSPs, and FPGAs, to
+architectures: multi-core CPUs, GPUs, many-core devices, DSPs, and FPGAs, to
 name a few. It is now commonplace to find not just one, but several of these
 differing architectures within the same machine. Programmers must make
 portability of their code a forethought, otherwise they risk locking their
@@ -23,7 +23,9 @@ moving in the direction of more parallelism. CPUs are not only adding CPU cores
 but also expanding the length of their SIMD operations. GPUs have grown to
 require a high degree of block and SIMT parallelism. It is clear that going
 forward all architectures will require a significant degree of parallelism in
-order to achieve high performance. The next thing to notice is that all of
+order to achieve high performance. Modern processors need not only a large
+ammount of parallelism, but frequently expose multiple levels of parallelism
+with varying degrees of coarseness. The next thing to notice is that all of
 these architectures have exposed hierarchies of memory. CPUs have the main
 system memory, typically DDR, and multiple layers of cache memory. GPUs have
 the main CPU memory, the main GPU memory, and various degrees of cache or
@@ -63,7 +65,7 @@ features for parallel programming. For example, Fortran 2008 added support for
 these language features is often slow, however, and many standard languages are
 only now beginning to discuss parallel programming features for future language
 releases. When these features become commonplace, they will provide high
-portability, since they are part of a standard language, and if designed well
+portability, since they are part of a standard language, and if well-designed
 can provide high performance as well.
 
 ### Compiler Directives ###
