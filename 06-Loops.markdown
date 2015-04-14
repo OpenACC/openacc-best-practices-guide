@@ -85,7 +85,22 @@ the outermost loop must be a gang loop, the innermost parallel loop must be
 a vector loop, and a worker loop may appear in between. A sequential loop may
 appear at any level.
 
-    Insert code example
+~~~~ {.numberLines}
+    #pragma acc parallel loop gang
+    for ( i=0; i<N; i++)
+      #pragma acc loop vector
+      for ( j=0; j<M; j++)
+        ;
+~~~~
+
+--
+
+~~~~ {.numberLines}
+    !$acc parallel loop gang
+    do j=1,M
+      !$acc loop vector
+      do i=1,N
+~~~~
 
 Informing the compiler where to partition the loops is just one part of
 optimizing the loops. The programmer may additionally tell the compiler the
@@ -97,14 +112,50 @@ will optionally inform the compiler how to partition that level of parallelism.
 For example, `vector(128)` informs the compiler to use a vector length of 128
 for the loop. 
 
-    Insert code example for kernels
+~~~~ {.numberLines}
+    #pragma acc kernels
+    {
+    #pragma acc loop gang
+    for ( i=0; i<N; i++)
+      #pragma acc loop vector(128)
+      for ( j=0; j<M; j++)
+        ;
+    }
+~~~~
+
+--
+
+~~~~ {.numberLines}
+    !$acc kernels
+    !$acc loop gang
+    do j=1,M
+      !$acc loop vector(128)
+      do i=1,N
+
+    !$acc end kernels
+~~~~
 
 When using the `parallel` directive, the information is presented
 on the `parallel` directive itself, rather than on each individual loop, in the
 form of the `num_gangs`, `num_workers, and `vector\_length` clauses to the
 `parallel` directive.
 
-    Insert code example for parallel
+~~~~ {.numberLines}
+    #pragma acc parallel loop gang vector_length(128)
+    for ( i=0; i<N; i++)
+      #pragma acc loop vector
+      for ( j=0; j<M; j++)
+        ;
+~~~~
+
+--
+
+~~~~ {.numberLines}
+    !$acc parallel loop gang vector_length(128)
+    do j=1,M
+      !$acc loop vector(128)
+      do i=1,N
+~~~~
 
 Since these mappings will vary between different accelerator, the `loop`
 directive accepts a `device\_type` clause, which will inform the compiler that
@@ -167,3 +218,108 @@ routine, it will then know how it can parallelize the code to use the routine.
 
 Case Study - Optimize Loops
 ---------------------------
+This case study will focus on a different algorithm than the previous chapters.
+When a compiler has sufficient information about loops to make informed
+decisions, it's frequently difficult to improve the performance of a given
+parallel loop by more than a few percent. In some cases, the code lacks the
+information necessary for the compiler to make informed optimization decisions.
+In these cases, it's often possible for a developer to optimize the parallel
+loops significantly by informing the compiler how to decompose and distribute
+the loops to the hardware.
+
+The code used in this section implements a sparse, matrix-vector product (SpMV)
+operation. This means that a matrix and a vector will be multiplied together,
+but the matrix has very few elements that are not zero (it is *sparse*),
+meaning that calculating these values is unnecessary. The matrix is stored in a
+compressed format, where only the non-zero values from each row are stored,
+along with a data structure that describes where in the larger matrix these
+non-zero elements would reside. The code for this exercise is below.
+
+~~~~ {.numberLines}
+~~~~
+
+--
+
+~~~~ {.numberLines}
+~~~~
+
+One important thing to note about this code is that the compiler is unable to
+determine how many non-zeros each row will contain and use that information in
+order to schedule the loops. The developer knows, however, that the number of
+non-zero elements per row is very small and this detail will be key to
+achieving high performance. 
+
+***NOTE: Because this case study features optimization techniques, it is
+necessary to perform optimizations that may be beneficial on one hardware, but
+not on others. This case study was performed using the PGI 2015 compiler on an
+NVIDIA Tesla K40 GPU. These same techniques may apply on other architectures,
+particularly those similar to NVIDIA GPUs, but it will be necessary to make
+certain optimization decisions based on the particular accelerator in use.***
+
+In examining the compiler feedback from the code shown above, I know that the
+compiler has chosen to use a vector length of ___ on the innermost loop. I
+could have also obtained this information from a runtime profile of the
+application. Based on my knowledge of the matrix, I know that this is
+significantly larger than the typical number of non-zeros per row, so many of
+the *vector lanes* on the accelerator will be wasted because there's not
+sufficient work for them. The first thing to try in order to improve
+performance is to adjust the vector length used on the innermost loop. I happen
+to know that the compiler I'm using will restrict me to using multiples of the
+*warp size* of this processor (***REFERENCE SOME NVIDIA DOCUMENT HERE***),
+which is 32. This detail will vary according to the accelerator of choice.
+Below is the modified code using a vector length of 32.
+
+
+~~~~ {.numberLines}
+~~~~
+
+--
+
+~~~~ {.numberLines}
+~~~~
+
+Notice that I have now explicitly informed the compiler that the innermost loop
+should be a vector loop, to ensure that the compiler will map the parallelism
+exactly how I wish. I can try different vector lengths to find the optimal
+value for my accelerator by modifying the `num_gangs` clause. Below is a graph
+showing the relative speed-up of varying the vector length
+compared to the compiler-selected value.
+
+*** INSERT GRAPH ***
+
+Notice that the best performance comes from the smallest vector length. Again,
+this is because the number of non-zeros per row is very small, so a small
+vector length results in fewer wasted compute resources. On the particular chip
+I'm using, the smallest possible vector length, 32, achieves the best possible
+performance. On this particular accelerator, I also know that the hardware will
+not perform efficiently at this vector length unless we can identify further
+parallelism another way. In this case, we can use the *worker* level of
+parallelism to fill each *gang* with more of these short vectors. Below is the
+modified code.
+
+~~~~ {.numberLines}
+~~~~
+
+--
+
+~~~~ {.numberLines}
+~~~~
+
+In this version of the code, I've explicitly mapped the outermost look to both
+gang and worker parallelism and will vary the number of workers using the
+`num_workers` clause. The results follow.
+
+*** INSERT GRAPH ***
+
+On this particular hardware, the best performance comes from a vector length of
+32 and 32 workers. This turns out to be the maximum amount of parallelism that
+the particular accelerator being use supports within a gang.
+
+***Best Pratice:*** Although not shown in order to save space, it's generally
+best to use the `device_type` clause whenever specifying the sorts of
+optimizations demonstrated in this section, because these clauses will likely
+differ from accelerator to accelerator. By using the `device_type` clause it's
+possible to provide this information only on accelerators where the
+optimizations apply and allow the compiler to make its own decisions on other
+architectures.
+

@@ -6,15 +6,17 @@ another shot.***
 Data locality means that data used in device or host memory should remain local
 to that memory for as long as it's needed. This idea may also be thought of as
 optimizing data reuse or optimizing away unnecessary data copies between the
-host and device memories. After expressing the parallelism of a program's
-important regions it's frequently necessary to provide the compiler with
-additional information about the locality of the data used by the parallel
-regions. As noted in the previous section, a compiler will take a cautious
-approach to data movement, always copying data that may be required, so that
-the program will still produce correct results. A programmer will have
-knowledge of what data is really needed and when it will be needed. The
-programmer will also have knowledge of how data may be shared between two
-functions, something that is difficult for a compiler to determine. 
+host and device memories. 
+
+After expressing the parallelism of a program's important regions it's
+frequently necessary to provide the compiler with additional information about
+the locality of the data used by the parallel regions. As noted in the previous
+section, a compiler will take a cautious approach to data movement, always
+copying data that may be required, so that the program will still produce
+correct results. A programmer will have knowledge of what data is really needed
+and when it will be needed. The programmer will also have knowledge of how data
+may be shared between two functions, something that is difficult for a compiler
+to determine. 
 
 The next step in the acceleration process is to provide the compiler with
 additional information about data locality to maximize reuse of data on the
@@ -322,14 +324,16 @@ released.
 The copy constructor is a special case that is worth looking at on its own. The
 copy constructor will be responsible for allocating space on the device for the
 class that it is creating, but it will also rely on data that is managed by the
-class being copied. In this example it is assumed that class being copied is
-also resident on the device. Since OpenACC does not currently provide a
+class being copied. Since OpenACC does not currently provide a
 portable way to copy from one array to another, like a `memcpy` on the host, a
-loop is used to copy each individual element to from one array to the other. An
-important thing to note is that because the data is being copied in a `parallel
-loop` it will only be copied on the device. If the data is also needed on the
-host then an `update` direct, which will be discussed in the next section, will
-be needed.
+loop is used to copy each individual element to from one array to the other.
+Because we know that the `Data` object passed in will also have its members on
+the device, we use a `present` clause on the `parallel loop` to inform the
+compiler that no data movement is necessary.
+
+*NOTE: At time of writing, the OpenACC technical committee is investigating the
+addition of a device to device memory copy API routine, which will simplify the
+above copy constructor.*
 
 Update Directive
 ----------------
@@ -413,15 +417,176 @@ Cache Directive
 ***Delaying slightly because the cache directive is still being actively
 improved in the PGI compiler.***
 
+Some parallel accelerators, GPUs in particular, have a high-speed memory that
+can serve as a user-managed cache. OpenACC provides a mechanism for declaring
+arrays and parts of arrays that would benefit from utilizing a fast memory if
+it's available within each gang. The `cache` directive may be placed within a
+loop and specify the array or array section should be placed in a fast memory
+for the extent of that loop.
+
 Global Data
 -----------
 ***Discuss `declare` directive.***
 
+When dealing with global data, such as variables that are declared globally,
+static to the file, or extern in C and C++ or common blocks and their contained
+data in Fortran, data regions and unstructured data directives are not
+sufficient. In these cases it is necessary to use the `declare` directive to
+declare that these variables should be available on the device. The `declare`
+directive has many complexities, which will be discussed as needed, so this
+section will only discuss it in the context of global variables in C anc C++
+and common blocks in Fortran.
+
 Best Practice: Offload Inefficient Operations to Maintain Data Locality
 -----------------------------------------------------------------------
-***Migrate serial exeuction to the GPU to maintain data on the GPU***
+Due to the high cost of PCIe data transfers on systems with distinct host and
+device memories, it's often beneficial to move sections of the application to
+the accelerator device, even when the code lacks sufficient parallelism to see
+direct benefit. The performance loss of running serial or code with a low
+degree of parallelism on a parallel accelerator is often less than the cost of
+transferring arrays back and forth between the two memories. A developer may
+use a `parallel` region with just 1 gang as a way to offload a serial section
+of the code to the accelerator. For instance, in the code below the first and
+last elements of the array are ghost elements that need to be set to zero. A
+`parallel` region (without a `loop`) is used to perform the parts that are
+serial.
+
+~~~~ {.numberLines}
+    #pragma acc parallel loop
+    for(i=1; i<(N-1); i++)
+    {
+      // calculate internal values
+      A[i] = 1;
+    }
+    #pragma acc parallel
+    {
+      A[0]   = 0;
+      A[N-1] = 0;
+    }
+~~~~
+
+---
+
+~~~~ {.numberLines}
+    !$acc parallel loop
+    do i=2,N-1
+      ! calculate internal values
+      A(i) = 1
+    end do
+    !$acc parallel
+      A(1) = 0;
+      A(N) = 0;
+    !$acc end parallel
+~~~~
+
+In the above example, the second `parallel` region will generate a small and
+launch a small kernel for setting the first and last elements. Small kernels
+generally do not run long enough to overcome the cost of a kernel launch on
+some offloading devices, such as GPUs. It's important that the data transfer
+saved by employing this technique is large enough to overcome the high cost of
+a kernel launch on some devices. Making both the `parallel loop` and the
+second `parallel` region could be made asynchronous (discussed in a later
+chapter) to reduce the cost of the second kernel launch.
+
+*Note: Because the `kernels` directive instructs the compiler to search for
+parallelism, there is no similar technique for `kernel`, but the `parallel`
+approach above can be easily placed betweek `kernels` regions.*
 
 Case Study - Optimize Data Locality
 -----------------------------------
-***Update example from the end of the last chapter with a data region***
+By the end of the last chapter was had moved the main computational loops of
+our example code and, in doing so, introduced a significant amount of implicit
+data transfers. The performance profile for our code shows that for each
+iteration the `A` and `Anew` arrays are being copied back and forth between the
+*host* and *device*, four times for the `parallel loop` version and twice for
+the `kernels` version. Given that the values for these arrays are not needed
+until after the answer has converged, let's add a data region around the
+convergence loop. Additionally, we'll need to specify how the arrays should be
+managed by this data region. Both the initial and final values for the `A`
+array are required, so that array will require a `copyin` data clause. The
+results in the `Anew` array, however, are only used within this section of
+code, so a `create` clause will be used for it. The resulting code is shown
+below.
 
+*Note: The changes required during this step are the same for both versions of
+the code, so only the `parallel loop` version will be shown.*
+
+~~~~ {.numberLines}
+    #pragma acc data copy(A) create(Anew)
+    while ( error > tol && iter < iter_max )
+    {
+      error = 0.0;
+      
+      #pragma acc parallel loop reduction(max:error) 
+      for( int j = 1; j < n-1; j++)
+      {
+        #pragma acc loop
+        for( int i = 1; i < m-1; i++ )
+        {
+          A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
+                           + Anew[j-1][i] + Anew[j+1][i]);
+          error = fmax( error, fabs(A[j][i] - Anew[j][i]));
+        }
+      }
+
+      #pragma acc parallel loop
+      for( int j = 1; j < n-1; j++)
+      {
+      #pragma acc loop
+        for( int i = 1; i < m-1; i++ )
+        {
+          A[j][i] = Anew[j][i];
+        }
+      }
+      
+      if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
+      
+      iter++;
+    }
+~~~~    
+      
+----
+
+~~~~ {.numberLines}
+    !$acc data copy(A) create(Anew)
+    do while ( error .gt. tol .and. iter .lt. iter_max )
+      error=0.0_fp_kind
+        
+      !$acc parallel loop reduction(max:error)
+      do j=1,m-2
+        !$acc loop
+        do i=1,n-2
+          A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
+                                    Anew(i  ,j-1) + Anew(i  ,j+1) )
+          error = max( error, abs(A(i,j) - Anew(i,j)) )
+        end do
+      end do
+
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
+
+      !$acc parallel loop
+      do j=1,m-2
+        do i=1,n-2
+          A(i,j) = Anew(i,j)
+        end do
+      end do
+    end do
+    !$acc end data
+~~~~    
+
+With this change, only the value computed for the maximum error, which is
+required by the convergence loop, is copied from the device every iteration.
+The `A` and `Anew` arrays will remain local to the device through the extent of
+this calculation. Using the Nvidia Visual Profiler again, we see that each
+data transfers now only occur at the beginning and end of the data region and
+that the time between each iterations is much less. 
+
+Looking at the final performance of this code, we see that the time for the
+OpenACC code on a GPU is now much faster than even the best threaded CPU code.
+
+This ends the Jacobi Iteration case study. The simplicity of this
+implementation generally shows very good speed-ups with OpenACC, often leaving
+little potential for further improvement. The reader should feel encouraged,
+however, to revisit this code to see if further improvements are possible on
+the device of interest to them.

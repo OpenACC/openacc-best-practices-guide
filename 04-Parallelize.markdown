@@ -24,72 +24,15 @@ OpenACC provides two different approaches for exposing parallelism in the code:
 `parallel` and `kernels` regions. Each of these directives will be detailed in
 the sections that follow.
 
-The Parallel Construct
-----------------------
-The `parallel` construct identifies a region of code that will be parallelized
-across OpenACC *gangs*. By itself the a `parallel` region is of limited use, but
-when paired with the `loop` directive (discussed in more detail later) the
-compiler will generate a parallel version of the loop for the accelerator.
-These two directives can, and most often are, combined into a single `parallel
-loop` directive. By placing this directive on a loop the programmer asserts
-that affected loop is safe to parallelize however the compiler sees fit for the
-target device. The code below demonstrates the use of the `parallel loop`
-combined directive in both C/C++ and Fortran.
-
-~~~~ {.numberLines}
-    #pragma acc parallel loop
-      for (i=0; i<N; i++)
-      {
-        y[i] = 0.0f;
-        x[i] = (float)(i+1);
-      }
-    
-    #pragma acc parallel loop
-      for (i=0; i<N; i++)
-      {
-        y[i] = 2.0f * x[i] + y[i];
-      }
-~~~~
-
-----
-
-~~~~ {.numberLines}
-    !$acc parallel loop
-    do i=1,N
-      y(i) = 0
-      x(i) = i
-    enddo
-  
-    !$acc parallel loop
-    do i=1,N
-      y(i) = 2.0 * x(i) + y(i)
-    enddo
-~~~~    
-
-In this example the code is initializing two arrays and then performing a
-simple calculation on them. Notice that each loop needs to be explicitly
-decorated with `parallel loop` directives. This is because the
-`parallel` construct relies on the programmer to identify the parallelism in
-the code rather than performing its own compiler analysis of the loops. 
-
-***Best Practice:*** In the above example it would have also been correct to use a
-single `parallel` construct and simply place `loop` directives on each loop.
-The result of this would be a single parallel kernel that performs both the
-initialization and the calculation. While in this simple example it may make
-sense to do so to reduce the overhead of launching two simple accelerator kernels, in
-general accelerators tend to work best with separate `parallel loop` kernels because
-the compiler and hardware can better balance the use of harware resources. 
-
-***Editor Note: There's a balance between too many small loops and one loop
-that is too resource constrained. The above paragraph should probably do more
-to address that.***
-
 The Kernels Construct
 ---------------------
 The `kernels` construct identifies a region of code that may contain
 parallelism, but relies on the automatic parallelization capabilities of the
 compiler to analyze the region, identify which loops are safe to parallelize,
-and then accelerate those loops. The code below demonstrates the use of
+and then accelerate those loops. Developers will little or no parallel
+programming experience, or those working on functions containing many loop
+nests that might be parallelized will find the kernels directive a good
+starting place for OpenACC acceleration. The code below demonstrates the use of
 `kernels` in both C/C++ and Fortran.
 
 ~~~~ {.numberLines}
@@ -123,14 +66,88 @@ and then accelerate those loops. The code below demonstrates the use of
     !$acc end kernels
 ~~~~    
 
-Notice that where the `parallel loop` directive required decorating each loop
-with a directive, the `kernels` construct applies to all loops within the
-region. Because the `kernels` directive is more compiler-driven, it gives the
-compiler additional freedom both in identifying where there is parallelism in
-the code and how to map that parallelism to the the accelerator. This also
-means that the acceleration of the code is limited by the compiler's ability to
-identify parallelism in the code, which will be discussed further in the next
-section.
+In this example the code is initializing two arrays and then performing a
+simple calculation on them. Notice that we have identified a block of code,
+using curly braces in C and starting and ending directives in Fortran, that
+contains two candidate loops for acceleration. The compiler will analyze these
+loops for data independence and parallelize both loops by generating an
+accelerator *kernel* for each. The compiler is given complete freedom to
+determine how best to map the parallelism available in these loops to the
+hardware, meaning that we will be able to use this same code regardless of the
+accelerator we are building for. The compiler will use its own knowledge of the
+target accelerator to choose the best path for acceleration. One caution about
+the `kernels` directive, however, is that if the compiler cannot be certain
+that a loop is data independent, it will not parallelize the loop. Common
+reasons for why a compiler may misidentify a loop as non-parallel will be
+discussed in a later section.
+
+The Parallel Construct
+----------------------
+The `parallel` construct identifies a region of code that will be parallelized
+across OpenACC *gangs*. By itself the a `parallel` region is of limited use, but
+when paired with the `loop` directive (discussed in more detail later) the
+compiler will generate a parallel version of the loop for the accelerator.
+These two directives can, and most often are, combined into a single `parallel
+loop` directive. By placing this directive on a loop the programmer asserts
+that the affected loop is safe to parallelize however the compiler sees fit for the
+target device. The code below demonstrates the use of the `parallel loop`
+combined directive in both C/C++ and Fortran.
+
+~~~~ {.numberLines}
+    #pragma acc parallel loop
+      for (i=0; i<N; i++)
+      {
+        y[i] = 0.0f;
+        x[i] = (float)(i+1);
+      }
+    
+    #pragma acc parallel loop
+      for (i=0; i<N; i++)
+      {
+        y[i] = 2.0f * x[i] + y[i];
+      }
+~~~~
+
+----
+
+~~~~ {.numberLines}
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 0
+      x(i) = i
+    enddo
+  
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 2.0 * x(i) + y(i)
+    enddo
+~~~~    
+
+Notice that, unlike the `kernels` directive, each loop needs to be explicitly
+decorated with `parallel loop` directives. This is because the `parallel`
+construct relies on the programmer to identify the parallelism in the code
+rather than performing its own compiler analysis of the loops. In this case,
+the programmer is only identifying the availability of parallelism, but still
+leaving the decision of how to map that parallelism to the accelerator to the
+compiler's knowledge about the device. This is a key feature that
+differentiates OpenACC from other, similar programming models. The programmer
+identifies the parallelism without dictating to the compiler how to exploit
+that parallelism. This means that OpenACC code will be portable to devices
+other than the device on which the code is being developed, because details
+about how to parallelize the code are left to compiler knowledge rather than
+being hard-coded into the source. 
+
+***Best Practice:*** In the above example it would have also been correct to use a
+single `parallel` construct and simply place `loop` directives on each loop.
+The result of this would be a single parallel kernel that performs both the
+initialization and the calculation. While in this simple example it may make
+sense to do so to reduce the overhead of launching two simple accelerator kernels, in
+general accelerators tend to work best with separate `parallel loop` kernels because
+the compiler and hardware can better balance the use of harware resources. 
+
+***Editor Note: There's a balance between too many small loops and one loop
+that is too resource constrained. The above paragraph should probably do more
+to address that.***
 
 Differences Between Parallel and Kernels
 ----------------------------------------
@@ -142,7 +159,7 @@ leeway to parallelize and optimize the code how it sees fit for the target
 accelerator, but also relies most heavily on the compiler's ability to
 automatically parallelize the code. As a result, the programmer may see
 differences in what different compilers are able to parallelize and how they do
-so. The `parallel loop` directive is more of an assertion by the programmer
+so. The `parallel loop` directive is an assertion by the programmer
 that it is both safe and desirable to parallelize the affected loop. This
 relies on the programmer to have correctly identified parallelism in the code
 and remove anything in the code that may be unsafe to parallelize. If the
