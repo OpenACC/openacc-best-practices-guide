@@ -123,7 +123,7 @@ for the loop.
     }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
     !$acc kernels
@@ -148,7 +148,7 @@ form of the `num_gangs`, `num_workers, and `vector\_length` clauses to the
         ;
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
     !$acc parallel loop gang vector_length(128)
@@ -236,11 +236,39 @@ along with a data structure that describes where in the larger matrix these
 non-zero elements would reside. The code for this exercise is below.
 
 ~~~~ {.numberLines}
+    #pragma acc parallel loop
+    for(int i=0;i<num_rows;i++) {
+      double sum=0;
+      int row_start=row_offsets[i];
+      int row_end=row_offsets[i+1];
+      #pragma acc loop reduction(+:sum)
+      for(int j=row_start;j<row_end;j++) {
+        unsigned int Acol=cols[j];
+        double Acoef=Acoefs[j];
+        double xcoef=xcoefs[Acol];
+        sum+=Acoef*xcoef;
+      }
+      ycoefs[i]=sum;
+    }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc parallel loop
+    do i=1,a%num_rows
+      tmpsum = 0.0d0
+      row_start = arow_offsets(i)
+      row_end   = arow_offsets(i+1)-1
+      !$acc loop reduction(+:tmpsum)
+      do j=row_start,row_end
+        acol = acols(j)
+        acoef = acoefs(j)
+        xcoef = x(acol)
+        tmpsum = tmpsum + acoef*xcoef
+      enddo
+      y(i) = tmpsum
+    enddo
 ~~~~
 
 One important thing to note about this code is that the compiler is unable to
@@ -265,17 +293,45 @@ the *vector lanes* on the accelerator will be wasted because there's not
 sufficient work for them. The first thing to try in order to improve
 performance is to adjust the vector length used on the innermost loop. I happen
 to know that the compiler I'm using will restrict me to using multiples of the
-*warp size* of this processor (***REFERENCE SOME NVIDIA DOCUMENT HERE***),
+*warp size* of this processor (***REFERENCE SOME NVIDIA DOCUMENT HERE?***),
 which is 32. This detail will vary according to the accelerator of choice.
 Below is the modified code using a vector length of 32.
 
 
 ~~~~ {.numberLines}
+    #pragma acc parallel loop vector_length(32)
+    for(int i=0;i<num_rows;i++) {
+      double sum=0;
+      int row_start=row_offsets[i];
+      int row_end=row_offsets[i+1];
+      #pragma acc loop vector reduction(+:sum)
+      for(int j=row_start;j<row_end;j++) {
+        unsigned int Acol=cols[j];
+        double Acoef=Acoefs[j];
+        double xcoef=xcoefs[Acol];
+        sum+=Acoef*xcoef;
+      }
+      ycoefs[i]=sum;
+    }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc parallel loop vector_length(32)
+    do i=1,a%num_rows
+      tmpsum = 0.0d0
+      row_start = arow_offsets(i)
+      row_end   = arow_offsets(i+1)-1
+      !$acc loop vector reduction(+:tmpsum)
+      do j=row_start,row_end
+        acol = acols(j)
+        acoef = acoefs(j)
+        xcoef = x(acol)
+        tmpsum = tmpsum + acoef*xcoef
+      enddo
+      y(i) = tmpsum
+    enddo
 ~~~~
 
 Notice that I have now explicitly informed the compiler that the innermost loop
@@ -298,11 +354,39 @@ parallelism to fill each *gang* with more of these short vectors. Below is the
 modified code.
 
 ~~~~ {.numberLines}
+    #pragma acc parallel loop gang worker num_workers(32) vector_length(32)
+    for(int i=0;i<num_rows;i++) {
+      double sum=0;
+      int row_start=row_offsets[i];
+      int row_end=row_offsets[i+1];
+      #pragma acc loop vector
+      for(int j=row_start;j<row_end;j++) {
+        unsigned int Acol=cols[j];
+        double Acoef=Acoefs[j];
+        double xcoef=xcoefs[Acol];
+        sum+=Acoef*xcoef;
+      }
+      ycoefs[i]=sum;
+    }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc parallel loop gang worker num_workers(32) vector_length(32)
+    do i=1,a%num_rows
+      tmpsum = 0.0d0
+      row_start = arow_offsets(i)
+      row_end   = arow_offsets(i+1)-1
+      !$acc loop vector reduction(+:tmpsum)
+      do j=row_start,row_end
+        acol = acols(j)
+        acoef = acoefs(j)
+        xcoef = x(acol)
+        tmpsum = tmpsum + acoef*xcoef
+      enddo
+      y(i) = tmpsum
+    enddo
 ~~~~
 
 In this version of the code, I've explicitly mapped the outermost look to both
