@@ -270,6 +270,66 @@ possible on any acclerated platform.
 Multi-device Programming
 ------------------------
 
+For systems containing more than accelerator, OpenACC provides and API to make
+operations happen on a particular device. In case a system contains
+accelerators of different types, the specification also allows for querying and
+selecting devices of a specific architecture.
+
+### acc\_get\_num\_devices() ###
+The `acc\_get\_num\_devices()` routine may be used to query how many devices of
+a given architecture are available on the system. It accepts one parameter of
+type `acc\_device\_t` and returns a integer number of devices.
+
+### acc\_get\_device\_num() and acc\_set\_device\_num() ###
+The `acc\_get\_device\_num()` routines query the
+current device that will be used of a given type and returns the integer
+identifier of that device.  The `acc\_set\_device\_num()` accepts two parameters,
+the desired device number and device type. Once a device number has been set,
+all operations will be sent to the specified device until a different device
+is specified by a later call to `acc\_set\_device\_num()`.
+
+
+### acc\_get\_device\_type() and acc\_set\_device\_type() ###
+The `acc\_get\_device\_type()` routine takes no parameters and returns the device
+type of the current default device. The `acc\_set\_device\_type()` specifies to
+the runtime the type of device that the runtime should use for accelerator
+operations, but allows the runtime to choose which device of that type to use.
+
+---
+
+### Multi-device Programming Example ###
+As a example of multi-device programming, it's possible to further extend the
+mandelbrot example used previously to send different blocks of work to
+different accelerators. In order to make this work, it's necessary to ensure
+that device copies of the data are created on each device. We will do this by
+replacing the structured `data` region in the code with an unstructured `enter
+data` directive for eac device, using the `acc\_set\_device\_num()` function to
+specify the device for each `enter data`. For simplicity, we will allocate the
+full image array on each device, although only a part of the array is actually
+needed. When the memory requirements of the application is large, it will be
+necessary to allocate just the pertinent parts of the data on each accelerator.
+
+Once the data has been created on each device, a call to `acc\_get\_device\_type()`
+in the blocking loop, using a simple modulus operation to select which device
+should receive each block, will sent blocks to different devices. 
+
+Lastly it's necessary to introduce a loop over devices to wait on each device
+to complete. Since the `wait` directive is per-device, the loop will once again
+use `acc\_get\_device\_type()` to select a device to wait on, and then use an
+`exit data` directive to deallocate the device memory. The final code is below.
+
+~~~~ {.numberLines}
+~~~~
+
+--
+
+~~~~ {.numberLines}
+~~~~
+
+While this scheme for dividing work and data among multiple devices is not
+perfect, it does serve as an example of how the `acc\_set\_device\_num()`
+routine can be used to operate on a machine with multiple devices.
+
 Atomic Operations
 -----------------
 
