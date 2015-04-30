@@ -136,11 +136,11 @@ run the code to ensure the resulting image is still correct.
 
 #### Step 1: Blocking Computation ####
 
-The first steo in pipelining the image generation is to introduce a loop that
+The first step in pipelining the image generation is to introduce a loop that
 will break the computation up into chunks of work that can be generated
 independently. To do this, we will need decide how many blocks of work is
 desired and use that to determine the starting and ending bounds for each
-block. Next we introduce an additional loop to around the existing two and
+block. Next we introduce an additional loop around the existing two and
 modify the `y` loop to only operate within the current block of work by
 updating its loop bounds with what we've calculated as the starting and ending
 values for the current block. The modified loop nests are shown below.
@@ -172,7 +172,7 @@ noticably better than the original code and may be worse.
 
 The next step in the process is to break up the data transfers to and from the
 device in the same way the computation has already been broken up. To do this
-we will need to first introduce a data region around the blocking loop. This
+we will first need to introduce a data region around the blocking loop. This
 will ensure that the device memory used to hold the image will remain on the
 device for all blocks of work. Since the initial value of the image array isn't
 important, we use a `create` data clause to allocate an uninitialized array on
@@ -216,7 +216,7 @@ To do this we will use asynchronous work queues to ensure that the computation
 and data transfer within a single block are in the same queue, but seperate
 blocks land in different queues. The block number is a convenient asynchronous
 handle to use for this change. Of course, since we're now operating completely
-asynchronously, it's critical that we add a wait directive after the block loop
+asynchronously, it's critical that we add a `wait` directive after the block loop
 to ensure that all work completes before we attempt to use the image data from
 the host. The modified code is found below.
 
@@ -247,7 +247,7 @@ block to operate simulataneously as the data transfer of another. The developer
 should now experiment with varying block sizes to determine what the optimal
 value is on the architecture of interest. It's important to note however that
 on some architectures the cost of creating an asynchronous queue the first time
-its used can be quite expensive. In long-running applications where the queues
+its used can be quite expensive. In long-running applications, where the queues
 may be created once at the beginning of a many-hour run and reused throughout,
 this cost is amortized. In short-running codes, such as the demonstration code
 used in this chapter, this cost may outweigh the benefit of the pipelining. Two
@@ -256,7 +256,10 @@ code that pre-creates the asynchronous queues before the timed section, or to
 use a modulus operation to reuse the same smaller number of queues among all of
 the blocks. For instance, by using the block number modulus 2 as the
 asynchronous handle, only two queues will be used and the cost of creating
-those queues will be amortized by their reuse.
+those queues will be amortized by their reuse. Two queues is generally
+sufficient to see a gain in performance, since it still allows computation and
+updates to overlap, but the developer should experiment to find the best value
+on a given machine.
 
 Below we see a screenshot showing before and after profiles from applying these
 changes to the code on an NVIDIA GPU platform. Similar results should be
