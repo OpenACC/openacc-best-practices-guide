@@ -276,22 +276,22 @@ accelerators of different types, the specification also allows for querying and
 selecting devices of a specific architecture.
 
 ### acc\_get\_num\_devices() ###
-The `acc\_get\_num\_devices()` routine may be used to query how many devices of
+The `acc_get_num_devices()` routine may be used to query how many devices of
 a given architecture are available on the system. It accepts one parameter of
-type `acc\_device\_t` and returns a integer number of devices.
+type `acc_device_t` and returns a integer number of devices.
 
 ### acc\_get\_device\_num() and acc\_set\_device\_num() ###
-The `acc\_get\_device\_num()` routines query the
+The `acc_get_device_num()` routines query the
 current device that will be used of a given type and returns the integer
-identifier of that device.  The `acc\_set\_device\_num()` accepts two parameters,
+identifier of that device.  The `acc_set_device_num()` accepts two parameters,
 the desired device number and device type. Once a device number has been set,
 all operations will be sent to the specified device until a different device
-is specified by a later call to `acc\_set\_device\_num()`.
+is specified by a later call to `acc_set_device_num()`.
 
 
 ### acc\_get\_device\_type() and acc\_set\_device\_type() ###
-The `acc\_get\_device\_type()` routine takes no parameters and returns the device
-type of the current default device. The `acc\_set\_device\_type()` specifies to
+The `acc_get_device_type()` routine takes no parameters and returns the device
+type of the current default device. The `acc_set_device_type()` specifies to
 the runtime the type of device that the runtime should use for accelerator
 operations, but allows the runtime to choose which device of that type to use.
 
@@ -303,22 +303,51 @@ mandelbrot example used previously to send different blocks of work to
 different accelerators. In order to make this work, it's necessary to ensure
 that device copies of the data are created on each device. We will do this by
 replacing the structured `data` region in the code with an unstructured `enter
-data` directive for eac device, using the `acc\_set\_device\_num()` function to
+data` directive for eac device, using the `acc_set_device_num()` function to
 specify the device for each `enter data`. For simplicity, we will allocate the
 full image array on each device, although only a part of the array is actually
 needed. When the memory requirements of the application is large, it will be
 necessary to allocate just the pertinent parts of the data on each accelerator.
 
-Once the data has been created on each device, a call to `acc\_get\_device\_type()`
+Once the data has been created on each device, a call to `acc_get_device_type()`
 in the blocking loop, using a simple modulus operation to select which device
 should receive each block, will sent blocks to different devices. 
 
 Lastly it's necessary to introduce a loop over devices to wait on each device
 to complete. Since the `wait` directive is per-device, the loop will once again
-use `acc\_get\_device\_type()` to select a device to wait on, and then use an
+use `acc_get_device_type()` to select a device to wait on, and then use an
 `exit data` directive to deallocate the device memory. The final code is below.
 
 ~~~~ {.numberLines}
+    // Allocate arrays on both devices
+    for (int gpu=0; gpu < 2 ; gpu ++)
+    {
+      acc_set_device_num(gpu,acc_device_nvidia);
+    #pragma acc enter data create(image[:bytes])
+    }
+   
+    // Distribute blocks between devices
+    for(int block=0; block < numblocks; block++)
+    {
+      int ystart = block * blocksize;
+      int yend   = ystart + blocksize;
+      acc_set_device_num(block%2,acc_device_nvidia);
+    #pragma acc parallel loop async(block)
+      for(int y=ystart;y<yend;y++) {
+        for(int x=0;x<WIDTH;x++) {
+          image[y*WIDTH+x]=mandelbrot(x,y);
+        }
+      }
+    #pragma acc update self(image[ystart*WIDTH:WIDTH*blocksize]) async(block)
+    }
+
+    // Wait on each device to complete and then deallocate arrays
+    for (int gpu=0; gpu < 2 ; gpu ++)
+    {
+      acc_set_device_num(gpu,acc_device_nvidia);
+    #pragma acc wait
+    #pragma acc exit data delete(image)
+    }
 ~~~~
 
 --
@@ -328,8 +357,70 @@ use `acc\_get\_device\_type()` to select a device to wait on, and then use an
 
 While this scheme for dividing work and data among multiple devices is not
 perfect, it does serve as an example of how the `acc\_set\_device\_num()`
-routine can be used to operate on a machine with multiple devices.
+routine can be used to operate on a machine with multiple devices. Figure _
+shows a screenshot of the NVIDIA Visual Profiler showing the mandelbrot
+computation divided across two NVIDIA gpus.
+
+![NVIDIA Visual Profiler timeline for multi-device mandelbrot](images/multigpu_mandelbrot_timeline.png)
 
 Atomic Operations
 -----------------
+When one or more loop iterations need to access an element in memory at the
+same time data races can occur. For instance, if one loop iteration is
+modifying the value contained in a variable and another is trying to read from
+the same variable in parallel, different results may occur depending on which
+iteration occurs first. In serial programs, the sequential loops ensure that
+the variable will be modified and read in a predictable order, but parallel
+programs don't make guarantees that a particular loop iteration will happen
+before anoter. In simple cases, such as finding a sum, maximum, or minimum
+value, a reduction operation (***refer to earlier section***) will ensure
+correctness. For more complex operations, the `atomic` directive will ensure
+that no two threads can attempt to perfom the contained operation
+simultaneously. 
 
+The `atomic` directive accepts one of four clauses to declare the type of
+operation contained within the region. The `read` operation ensures that no two
+loop iterations will read from the region at the same time. The `write`
+operation will ensure that no two iterations with write to the region at the
+same time. An `update` operation is a combined read and write. Finally a
+`capture` operation performs an update, but saves the value calculated in that
+region to use in the code that follows. If no clause is given then an update
+operation will occur.
+
+### Atomic Example ###
+
+![A histogram of number distribution.](images/histogram.png)
+
+A histogram is a common technique for counting up how many times values occur
+from an input set according to their value. Figure _ shows a histogram that
+counts the number of times numbers fall within particular ranges. The example
+code below loops through a series of integer numbers of a known range and
+counts the occurances of each number in that range. Since each number in the
+range can occur multiple times, we need to ensure that each element in the
+histogram array is updated atomically. The code below demonstrates using the
+`atomic` directive to generate a histogram.
+
+~~~~ {.numberLines}
+    #pragma acc data copyin(a[0:N]) copyout(h[0:HN])
+    for(int it=0;it<ITERS;it++)
+    {
+      #pragma acc parallel loop
+      for(int i=0;i<HN;i++)
+        h[i]=0;
+ 
+      #pragma acc parallel loop
+      for(int i=0;i<N;i++) {
+        #pragma acc atomic update
+        h[a[i]]+=1;
+      }
+    }
+~~~~
+
+--
+
+~~~~ {.numberLines}
+~~~~
+
+Notice that updates to the histogram array `h` are performed atomically.
+Because we are incrementing the value of the array element, an update operation
+is used to read the value, modify it, and then write it back.
