@@ -16,6 +16,7 @@ managing all data using OpenACC, but calling into a function that requires
 device data. For the purpose of example the `cublasSaxpy` routine will be used
 in place of writing a *saxpy* routine, as was shown in an earlier chapter. This
 routine is freely provided by Nvidia for their hardware in the CUBLAS library.
+Most other vendors provide their own, tuned library.
 
 The `host_data` region gives the programmer a way to expose the device address
 of a given array to the host for passing into a function. This data must have
