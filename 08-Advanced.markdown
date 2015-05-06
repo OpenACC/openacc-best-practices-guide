@@ -24,11 +24,22 @@ being performed by the accelerator. The code below demonstrates adding the
 `async` clause to a `parallel loop` and an `update` directive that follows.
 
 ~~~~ {.numberLines}
+    #pragma acc parallel loop async
+    for (int i=0; i<N; i++)
+    {
+      c[i] = a[i] + b[i]
+    }
+    #pragma acc update self(c[0:N]) async
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc parallel loop async
+    do i=1,N
+      c(i) = a(i) + b(i)
+    end do
+    !$acc update self(c) async
 ~~~~
 
 In the case above, the host thread will enqueue the parallel region into the
@@ -43,11 +54,24 @@ above examples can be extended to include a synchronization before the data
 being copied by the `update` directive proceeds.
 
 ~~~~ {.numberLines}
+    #pragma acc parallel loop async
+    for (int i=0; i<N; i++)
+    {
+      c[i] = a[i] + b[i]
+    }
+    #pragma acc update self(c[0:N]) async
+    #pragma acc wait
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc parallel loop async
+    do i=1,N
+      c(i) = a(i) + b(i)
+    end do
+    !$acc update self(c) async
+    !$acc wait
 ~~~~
 
 While this is useful, it would be even more useful to expose depenedencies into
@@ -69,12 +93,54 @@ clause to an `wait`. This may seem unintuitive, so the code below demonstrates
 how this is done.
 
 ~~~~ {.numberLines}
+    #pragma acc parallel loop async(1)
+    for (int i=0; i<N; i++)
+    {
+      a[i] = i;
+    }
+    #pragma acc parallel loop async(2)
+    for (int i=0; i<N; i++)
+    {
+      b[i] = 2*i;
+    }
+    #pragma acc wait(1) async(2)
+    #pragma acc parallel loop async(2)
+    for (int i=0; i<N; i++)
+    {
+      c[i] = a[i] + b[i]
+    }
+    #pragma acc update self(c[0:N]) async(2)
+    #pragma acc wait
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc parallel loop async(1)
+    do i=1,N
+      a(i) = i
+    end do
+    !$acc parallel loop async(2)
+    do i=1,N
+      b(i) = 2.0 * i
+    end do
+    !$acc wait(1) async(2)
+    !$acc parallel loop async(2)
+    do i=1,N
+      c(i) = a(i) + b(i)
+    end do
+    !$acc update self(c) async
+    !$acc wait
 ~~~~
+
+The above code initializes the values contained in `a` and `b` using seperate
+work queues so that they may potentially be done independently. The `wait(1)
+async(2)` ensures that work queue 2 does not proceed until queue 1 has
+completed. The vector addition is then able to be enqueued to the device
+because the previous kernels will have completed prior to this point. Lastly
+the code waits for all previous operations to complete. Using this technique
+we've expressed the dependencies of our loops to maximize concurrency between
+regions but still give correct results.
 
 ***Best Practice:*** The cost of sending an operation to the accelerator for
 execution is frequently quite high on offloading accelerators, such as GPUs
@@ -94,7 +160,7 @@ accelerator directives automatically.
 
 ![Mandelbrot Set Output](images/mandelbrot.png)
 
-For this example we will be modifying a simple application that generations a
+For this example we will be modifying a simple application that generates a
 mandelbrot set, such as the picture shown above. Since each pixel of the image
 can be independently calculated, the code is trivial to parallelize, but
 because of the large size of the image itself, the data transfer to copy the
@@ -107,11 +173,23 @@ is left out of this chapter to save space, but is included in the full
 examples.)*
 
 ~~~~ {.numberLines}
+    #pragma acc parallel loop
+    for(int y=0;y<HEIGHT;y++) {
+      for(int x=0;x<WIDTH;x++) {
+        image[y*WIDTH+x]=mandelbrot(x,y);
+      }
+    }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc parallel loop
+    do iy=1,width
+      do ix=1,HEIGHT
+        image(ix,iy) = min(max(int(mandelbrot(ix-1,iy-1)),0),MAXCOLORS)
+      enddo
+    enddo
 ~~~~
 
 Since each pixel is independent of each other, it's possible to use a technique
@@ -148,10 +226,10 @@ values for the current block. The modified loop nests are shown below.
 ~~~~ {.numberLines}
     int num_blocks = 8;
     for(int block = 0; block < num_blocks; block++ ) {
-      int start = block * (HEIGHT/num_blocks),
-          end   = start + (HEIGHT/num_blocks);
+      int ystart = block * (HEIGHT/num_blocks),
+          yend   = ystart + (HEIGHT/num_blocks);
     #pragma acc parallel loop
-      for(int y=start;y<end;y++) {
+      for(int y=ystart;y<yend;y++) {
         for(int x=0;x<WIDTH;x++) {
           image[y*WIDTH+x]=mandelbrot(x,y);
         }
@@ -159,9 +237,21 @@ values for the current block. The modified loop nests are shown below.
     }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    num_batches=8
+    batch_size=WIDTH/num_batches
+    do yp=0,num_batches-1
+      ystart = yp * batch_size + 1
+      yend   = ystart + batch_size - 1
+      !$acc parallel loop
+      do iy=ystart,yend
+        do ix=1,HEIGHT
+          image(ix,iy) = min(max(int(mandelbrot(ix-1,iy-1)),0),MAXCOLORS)
+        enddo
+      enddo
+    enddo
 ~~~~
 
 At this point we have only confirmed that we can successfully generate each
@@ -186,10 +276,10 @@ code at the end of this step is below.
     int num_blocks = 8, block_size = (HEIGHT/num_blocks)*WIDTH;
     #pragma acc data create(image[WIDTH*HEIGHT])
     for(int block = 0; block < num_blocks; block++ ) {
-      int start = block * (HEIGHT/num_blocks),
-          end   = start + (HEIGHT/num_blocks);
+      int ystart = block * (HEIGHT/num_blocks),
+          yend   = ystart + (HEIGHT/num_blocks);
     #pragma acc parallel loop
-      for(int y=start;y<end;y++) {
+      for(int y=ystart;y<yend;y++) {
         for(int x=0;x<WIDTH;x++) {
           image[y*WIDTH+x]=mandelbrot(x,y);
         }
@@ -198,9 +288,25 @@ code at the end of this step is below.
     }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    num_batches=8
+    batch_size=WIDTH/num_batches
+    call cpu_time(startt)
+    !$acc data create(image)
+    do yp=0,NUM_BATCHES-1
+      ystart = yp * batch_size + 1
+      yend   = ystart + batch_size - 1
+      !$acc parallel loop
+      do iy=ystart,yend
+        do ix=1,HEIGHT
+          image(ix,iy) = mandelbrot(ix-1,iy-1)
+        enddo
+      enddo
+      !$acc update self(image(:,ystart:yend))
+    enddo
+    !$acc end data
 ~~~~
 
 By the end of this step we are calculating and copying each block of the image
@@ -224,10 +330,10 @@ the host. The modified code is found below.
     int num_blocks = 8, block_size = (HEIGHT/num_blocks)*WIDTH;
     #pragma acc data create(image[WIDTH*HEIGHT])
     for(int block = 0; block < num_blocks; block++ ) {
-      int start = block * (HEIGHT/num_blocks),
-          end   = start + (HEIGHT/num_blocks);
+      int ystart = block * (HEIGHT/num_blocks),
+          yend   = ystart + (HEIGHT/num_blocks);
     #pragma acc parallel loop async(block)
-      for(int y=start;y<end;y++) {
+      for(int y=ystart;y<yend;y++) {
         for(int x=0;x<WIDTH;x++) {
           image[y*WIDTH+x]=mandelbrot(x,y);
         }
@@ -237,9 +343,26 @@ the host. The modified code is found below.
     #pragma acc wait
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    num_batches=8
+    batch_size=WIDTH/num_batches
+    call cpu_time(startt)
+    !$acc data create(image)
+    do yp=0,NUM_BATCHES-1
+      ystart = yp * batch_size + 1
+      yend   = ystart + batch_size - 1
+      !$acc parallel loop async(yp)
+      do iy=ystart,yend
+        do ix=1,HEIGHT
+          image(ix,iy) = mandelbrot(ix-1,iy-1)
+        enddo
+      enddo
+      !$acc update self(image(:,ystart:yend)) async(yp)
+    enddo
+    !$acc wait
+    !$acc end data
 ~~~~
 
 With this modification it's now possible for the computational part of one
@@ -350,9 +473,10 @@ use `acc_get_device_type()` to select a device to wait on, and then use an
     }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    ! TODO
 ~~~~
 
 While this scheme for dividing work and data among multiple devices is not
@@ -416,9 +540,22 @@ histogram array is updated atomically. The code below demonstrates using the
     }
 ~~~~
 
---
+---
 
 ~~~~ {.numberLines}
+    !$acc data copyin(a) copyout(h)
+    do it=1,ITERS
+      !$acc kernels
+      h(:) = 0
+      !$acc end kernels
+      !$acc parallel loop
+      do i=1,N
+        !$acc atomic
+        h(a(i)) = h(a(i)) + 1
+      enddo
+      !$acc end parallel loop
+    enddo
+    !$acc end data
 ~~~~
 
 Notice that updates to the histogram array `h` are performed atomically.
