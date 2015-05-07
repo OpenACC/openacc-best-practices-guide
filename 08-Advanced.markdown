@@ -202,7 +202,7 @@ is transfered, but all but the first and last transfers can be overlapped with
 computation. The number and size of these smaller chunks of work can be
 adjusted to find the value that provides the best performance.
 
-***Insert idealized pipeline picture***
+![Idealized Pipeline Showing Overlapping of 2 Independent Operations](images/idealized_pipeline.png)
 
 The mandelbrot code can use this same technique by chunking up the image
 generation and data transfers into smaller, independent pieces. This will be
