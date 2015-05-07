@@ -27,6 +27,7 @@ the device via a `data` region and then initialized in an OpenACC
 loop. These arrays are then passed to the `cublasSaxpy` function as device
 pointers using the `host_data` region. 
 
+~~~~ {.numberLines}
     #pragma acc data create(x[0:n]) copyout(y[0:n])
     {
       #pragma acc kernels
@@ -43,6 +44,7 @@ pointers using the `host_data` region.
         cublasSaxpy(n, 2.0, x, 1, y, 1);
       }
     }
+~~~~
 
 The call to `cublasSaxpy` can be changed to any function that expects device
 memory as parameter.
@@ -60,18 +62,138 @@ taken on them. The example below uses the `acc_malloc` function, which
 allocates device memory and returns a pointer, to allocate an array only on the
 device and then uses that array within an OpenACC region.
 
-    Simplify existing example to use acc_malloc instead of cudaMalloc
+~~~~ {.numberLines}
+    void saxpy(int n, float a, float * restrict x, float * restrict y)
+    {
+      #pragma acc kernels deviceptr(x,y)
+      {
+        for(int i=0; i<n; i++)
+        {
+          y[i] += a*x[i];
+        }
+      }
+    }
+    void set(int n, float val, float * restrict arr)
+    {
+    #pragma acc kernels deviceptr(arr)
+      {
+        for(int i=0; i<n; i++)
+        {
+          arr[i] = val;
+        }
+      }
+    }
+    int main(int argc, char **argv)
+    {
+      float *x, *y, tmp;
+      int n = 1<<20;
+    
+      x = acc_malloc((size_t)n*sizeof(float));
+      y = acc_malloc((size_t)n*sizeof(float));
+    
+      set(n,1.0f,x);
+      set(n,0.0f,y);
+    
+      saxpy(n, 2.0, x, y);
+      acc_memcpy_from_device(&tmp,y,(size_t)sizeof(float));
+      printf("%f\n",tmp);
+      acc_free(x);
+      acc_free(y);
+      return 0;
+    }
+~~~~
 
-Although the above example uses `acc_malloc`, which is provided by the OpenACC
-specification for portable memory management, a device-specific API may have
-also been used, such as `cudaMalloc`.
+Notice that in the `set` and `saxpy` routines, where the OpenACC compute
+regions are found, each compute region is informed that the pointers being
+passed in are already device pointers by using the `deviceptr` keyword. This
+example also uses the `acc_malloc`, `acc_free`, and `acc_memcpy_from_device`
+routines for memory management. Although the above example uses `acc_malloc`
+and `acc_memcpy_from_device`, which are provided by the OpenACC specification
+for portable memory management, a device-specific API may have also been used,
+such as `cudaMalloc` and `cudaMemcpy`.
+
+Obtaining Device and Host Pointer Addresses
+-------------------------------------------
+OpenACC provides the `acc_deviceptr` and `acc_hostptr` function calls for
+obtaining the device and host addresses of pointers based on the host and
+device addresses, respectively. These routines require that the addresses
+actually have corresponding addresses, otherwise they will return NULL.
 
 Mapping Arrays
 --------------
-***This is turning out to be very complicated to explain. I'm going to take
-another stab at it once my eyes are fresh.***
+***This is a pretty complicated thing to explain. Would anyone object to it
+being left out?***
 
-Using CUDA Device Kernels
--------------------------
-***NOTE: This is the first NVIDIA-specific thing in this document. Is it out of
-place to discuss CUDA specifically here?***
+Additional Vendor-Specific Interoperability Features
+----------------------------------------------------
+The OpenACC specification suggests several features that are specific to
+individual vendors. While implementations are not required to provide the
+functionality, it's useful to know that these features exist in some
+implementations. The purpose of these features are to provide interoperability
+with the native runtime of each platform. Developers should refer to the
+OpenACC specification and their compiler's documentation for a full list of
+supported features.
+
+###Asynchronous Queues and CUDA Streams (NVIDIA)
+As already demonstrated, asynchronous work queues are frequently an important
+way to deal with the cost of PCIe data transfers on devices with distinct host
+and device memory. In the NVIDIA CUDA programming model asynchronous operations
+are programmed using CUDA streams. Since developers may need to interoperate
+between CUDA streams and OpenACC queues, the specification suggests two
+routines for mapping CUDA streams and OpenACC asynchronous queues.
+
+The `acc_get_cuda_stream` function accepts an integer async id and returns a
+CUDA stream object (as a void\*) for use as a CUDA stream.
+
+The `acc_set_cuda_stream` function accepts an integer async handle and a CUDA
+stream object (as a void\*) and maps the CUDA stream used by the async handle
+to the stream provided.
+
+With these two functions it's possible to place both OpenACC operations and
+CUDA operations into the same underlying CUDA stream so that they will execute
+in the appropriate order.
+
+###CUDA Managed Memory (NVIDIA)
+NVIDIA added support for *CUDA Managed Memory*, which provides a single pointer
+to memory regardless of whether it is accessed from the host or device, in CUDA
+6.0. In many ways managed memory is similar to OpenACC memory management, in
+that only a single reference to the memory is necessary and the runtime will
+handle the complexities of data movement. The advantage that managed memory
+sometimes has it that it is better able to handle complex data structures, such
+as C++ classes or structures containing pointers, since pointer references are
+valid on both the host and the device. More information about CUDA Managed
+Memory can be obtained from NVIDIA. To use managed memory within an OpenACC
+program the developer can simply declare pointers to managed memory as device
+pointers using the `deviceptr` clause so that the OpenACC runtime will not
+attempt to create a separate device allocation for the pointers. 
+
+###Using CUDA Device Kernels (NVIDIA)
+The `host_data` directive is useful for passing device memory to host-callable
+CUDA kernels. In cases where it's necessary to call a device kernel (CUDA
+`__device__` function) from within an OpenACC parallel region it's possible to
+use the `acc routine` directive to inform the compiler that the function being
+called is available on the device. The function declaration must be decorated
+with the `acc routine` directive and the level of parallelism at which the
+function may be called. In the example below the function `f1dev` is a sequential
+function that will be called from each CUDA thread, so it is declared `acc
+routine seq`. 
+
+~~~~ {.numberLines}
+    // Function implementation
+    extern "C" __device__ void
+    f1dev( float* a, float* b, int i ){
+      a[i] = 2.0 * b[i];
+    }
+    
+    // Function declaration
+    #pragma acc routine seq
+    extern "C" void f1dev( float*, float* int );
+    
+    // Function call-site
+    #pragma acc parallel loop present( a[0:n], b[0:n] )
+    for( int i = 0; i < n; ++i )
+    {
+      // f1dev is a __device__ function build with CUDA
+      f1dev( a, b, i );
+    }
+~~~~

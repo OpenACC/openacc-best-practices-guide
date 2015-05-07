@@ -489,8 +489,8 @@ second `parallel` region could be made asynchronous (discussed in a later
 chapter) to reduce the cost of the second kernel launch.
 
 *Note: Because the `kernels` directive instructs the compiler to search for
-parallelism, there is no similar technique for `kernel`, but the `parallel`
-approach above can be easily placed betweek `kernels` regions.*
+parallelism, there is no similar technique for `kernels`, but the `parallel`
+approach above can be easily placed between `kernels` regions.*
 
 Case Study - Optimize Data Locality
 -----------------------------------
