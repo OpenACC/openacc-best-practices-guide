@@ -476,12 +476,37 @@ use `acc_get_device_type()` to select a device to wait on, and then use an
 ---
 
 ~~~~ {.numberLines}
-    ! TODO
+    batch_size=WIDTH/num_batches
+    do gpu=0,1
+      call acc_set_device_num(gpu,acc_device_nvidia)
+      !$acc enter data create(image)
+    enddo
+    do yp=0,NUM_BATCHES-1
+      call acc_set_device_num(mod(yp,2),acc_device_nvidia)
+      ystart = yp * batch_size + 1
+      yend   = ystart + batch_size - 1
+      !$acc parallel loop async(yp)
+      do iy=ystart,yend
+        do ix=1,HEIGHT
+          image(ix,iy) = mandelbrot(ix-1,iy-1)
+        enddo
+      enddo
+      !$acc update self(image(:,ystart:yend)) async(yp)
+    enddo
+    do gpu=0,1
+      call acc_set_device_num(gpu,acc_device_nvidia)
+      !$acc wait
+      !$acc exit data delete(image)
+    enddo
 ~~~~
 
-While this scheme for dividing work and data among multiple devices is not
-perfect, it does serve as an example of how the `acc\_set\_device\_num()`
-routine can be used to operate on a machine with multiple devices. Figure _
+Although this example over-allocates device memory by placing the entire image array
+on the device, it does serve as a simple example of how the `acc_set_device_num()`
+routine can be used to operate on a machine with multiple devices. In
+production codes the developer will likely want to partition the work such that
+only the parts of the array needed by a specific device are available there.
+Additionally, by using CPU threads it may be possible to issue work to the
+devices more quickly and improve overall performance. Figure _
 shows a screenshot of the NVIDIA Visual Profiler showing the mandelbrot
 computation divided across two NVIDIA gpus.
 
