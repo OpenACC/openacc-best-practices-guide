@@ -85,7 +85,7 @@ the outermost loop must be a gang loop, the innermost parallel loop must be
 a vector loop, and a worker loop may appear in between. A sequential loop may
 appear at any level.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop gang
     for ( i=0; i<N; i++)
       #pragma acc loop vector
@@ -95,7 +95,7 @@ appear at any level.
 
 --
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop gang
     do j=1,M
       !$acc loop vector
@@ -112,7 +112,7 @@ will optionally inform the compiler how to partition that level of parallelism.
 For example, `vector(128)` informs the compiler to use a vector length of 128
 for the loop. 
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc kernels
     {
     #pragma acc loop gang
@@ -125,7 +125,7 @@ for the loop.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc kernels
     !$acc loop gang
     do j=1,M
@@ -140,7 +140,7 @@ on the `parallel` directive itself, rather than on each individual loop, in the
 form of the `num_gangs`, `num_workers, and `vector\_length` clauses to the
 `parallel` directive.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop gang vector_length(128)
     for ( i=0; i<N; i++)
       #pragma acc loop vector
@@ -150,7 +150,7 @@ form of the `num_gangs`, `num_workers, and `vector\_length` clauses to the
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop gang vector_length(128)
     do j=1,M
       !$acc loop vector(128)
@@ -169,7 +169,7 @@ specifies that a vector length of 128 should be used on devices of type
 type `acc\device\radeon`. The compiler will choose a default vector length for
 all other device types.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop gang vector \
                 device_type(acc_device_nvidia) vector_length(128) \
                 device_type(acc_device_radeon) vector_length(256)
@@ -235,7 +235,7 @@ compressed format, where only the non-zero values from each row are stored,
 along with a data structure that describes where in the larger matrix these
 non-zero elements would reside. The code for this exercise is below.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop
     for(int i=0;i<num_rows;i++) {
       double sum=0;
@@ -254,7 +254,7 @@ non-zero elements would reside. The code for this exercise is below.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop
     do i=1,a%num_rows
       tmpsum = 0.0d0
@@ -298,7 +298,7 @@ which is 32. This detail will vary according to the accelerator of choice.
 Below is the modified code using a vector length of 32.
 
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop vector_length(32)
     for(int i=0;i<num_rows;i++) {
       double sum=0;
@@ -317,7 +317,7 @@ Below is the modified code using a vector length of 32.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop vector_length(32)
     do i=1,a%num_rows
       tmpsum = 0.0d0
@@ -341,7 +341,7 @@ value for my accelerator by modifying the `num_gangs` clause. Below is a graph
 showing the relative speed-up of varying the vector length
 compared to the compiler-selected value.
 
-*** INSERT GRAPH ***
+***INSERT GRAPH***
 
 Notice that the best performance comes from the smallest vector length. Again,
 this is because the number of non-zeros per row is very small, so a small
@@ -353,7 +353,7 @@ parallelism another way. In this case, we can use the *worker* level of
 parallelism to fill each *gang* with more of these short vectors. Below is the
 modified code.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop gang worker num_workers(32) vector_length(32)
     for(int i=0;i<num_rows;i++) {
       double sum=0;
@@ -372,7 +372,7 @@ modified code.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop gang worker num_workers(32) vector_length(32)
     do i=1,a%num_rows
       tmpsum = 0.0d0

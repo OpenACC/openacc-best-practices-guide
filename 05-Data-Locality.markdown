@@ -37,7 +37,7 @@ section will discuss how to handle cases where a structured construct is not
 useful. A `data` region may be added to the earlier `parallel loop` example to
 enable data to be shared between both loop nests as follows.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc data
     {
       #pragma acc parallel loop
@@ -57,7 +57,7 @@ enable data to be shared between both loop nests as follows.
 
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc data
     !$acc parallel loop
     do i=1,N
@@ -128,7 +128,7 @@ back to the host at the end of the calculation. The code below demonstrates
 using the `pcreate` and `pcopyout` directives to describe exactly this data
 locality to the compiler.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc data pcreate(x) pcopyout(y)
     {
       #pragma acc parallel loop
@@ -148,7 +148,7 @@ locality to the compiler.
 
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc data pcreate(x) pcopyout(y)
     !$acc parallel loop
     do i=1,N
@@ -190,7 +190,7 @@ when only a part of the array needs to be stored on the device.
 As an example of array shaping, the code below modifies the previous example by
 adding shape information to each of the arrays.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc data pcreate(x[0:N]) pcopyout(y[0:N])
     {
       #pragma acc parallel loop
@@ -210,7 +210,7 @@ adding shape information to each of the arrays.
 
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc data pcreate(x(1:N)) pcopyout(y(1:N))
     !$acc parallel loop
     do i=1,N
@@ -265,7 +265,7 @@ The example below shows a simple C++ class that has a constructor, a
 destructor, and a copy constructor. The data management of these routines has
 been handled using OpenACC directives.
 
-~~~~ {.numberLines}
+~~~~ {.cpp .numberLines}
     template <class ctype> class Data
     {
       private:
@@ -353,7 +353,7 @@ As an example of the `update` directive, below are two routines that may be
 added to the above `Data` class to force a copy from host to device and device
 to host.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     void update_host()
     {
     #pragma acc update self(arr[0:len])
@@ -386,7 +386,7 @@ results on a unified and non-unified memory machine, making the code
 non-portable.
 
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     for(int i=0; i<N; i++)
     {
       a[i] = 0;
@@ -451,7 +451,7 @@ last elements of the array are ghost elements that need to be set to zero. A
 `parallel` region (without a `loop`) is used to perform the parts that are
 serial.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop
     for(i=1; i<(N-1); i++)
     {
@@ -467,7 +467,7 @@ serial.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop
     do i=2,N-1
       ! calculate internal values
@@ -511,7 +511,7 @@ below.
 *Note: The changes required during this step are the same for both versions of
 the code, so only the `parallel loop` version will be shown.*
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc data copy(A) create(Anew)
     while ( error > tol && iter < iter_max )
     {
@@ -547,7 +547,7 @@ the code, so only the `parallel loop` version will be shown.*
       
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc data copy(A) create(Anew)
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind

@@ -35,7 +35,7 @@ nests that might be parallelized will find the kernels directive a good
 starting place for OpenACC acceleration. The code below demonstrates the use of
 `kernels` in both C/C++ and Fortran.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc kernels
     {
       for (i=0; i<N; i++)
@@ -53,7 +53,7 @@ starting place for OpenACC acceleration. The code below demonstrates the use of
 
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc kernels
     do i=1,N
       y(i) = 0
@@ -93,7 +93,7 @@ that the affected loop is safe to parallelize however the compiler sees fit for 
 target device. The code below demonstrates the use of the `parallel loop`
 combined directive in both C/C++ and Fortran.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop
       for (i=0; i<N; i++)
       {
@@ -110,7 +110,7 @@ combined directive in both C/C++ and Fortran.
 
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop
     do i=1,N
       y(i) = 0
@@ -201,13 +201,13 @@ or may not copy the data back and forth between the host and the device between
 the two loops. In the examples shown in the previous section the compiler
 generates implicit data movement for both parallel loops, but only
 generates data movement once for the `kernels` approach, which may result in
-less data motion by default.
-
-***Add compiler output to the above, it will illustrate the differences in
-implicit data movement.***
+less data motion by default. This difference will be revisited in the case
+study later in this chapter.
 
 For more information on the differences between the `kernels` and `parallel`
 directives, please see [http://www.pgroup.com/lit/articles/insider/v4n2a1.htm].
+
+---
 
 At this point many programmers will be left wondering which directive they
 should use in their code. More experienced parallel programmers, who may have
@@ -236,17 +236,15 @@ and a later chapter will discuss optimization clauses.
 
 ### private ###
 The private clause specifies that each loop iteration requires its own copy of
-the listed variables. For example, if each loop contains a scalar variable
-named `tmp` that it uses as a temporary value during its calculation, then this
-variable must be made private to each loop iteration in order to ensure correct
-results. If `tmp` is not declared private, then threads executing different
-loop iterations may access this shared `tmp` variable in unpredictable ways,
-resulting in a race condition and potentially incorrect results. This is not
-limited to scalar variables, but scalar temporaries are a common programming
-pattern.
+the listed variables. For example, if each loop contains a small, temporary
+array named `tmp` that it uses during its calculation, then this variable must
+be made private to each loop iteration in order to ensure correct results. If
+`tmp` is not declared private, then threads executing different loop iterations
+may access this shared `tmp` variable in unpredictable ways, resulting in a
+race condition and potentially incorrect results. Below is the synax for the
+`private` clause.
 
-***Add example using private and clarify why private is needed in light of the
-firstprivate statement below.***
+    private(variable)
 
 There are a few special cases that must be understood about scalar
 variables within loops. First, loop iterators will be privatized by default, so
@@ -331,7 +329,7 @@ programmer should always indicate reductions in the code.
 
 At this point the code looks like the examples below.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     while ( error > tol && iter < iter_max )
     {
       error = 0.0;
@@ -366,7 +364,7 @@ At this point the code looks like the examples below.
       
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
         
@@ -430,7 +428,7 @@ inserting just one directive in the code and allowing the compiler to perform
 the parallel analysis. Adding a `kernels` construct around the two
 computational loop nests results in the following code.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     while ( error > tol && iter < iter_max )
     {
       error = 0.0;
@@ -464,7 +462,7 @@ computational loop nests results in the following code.
 
 ----
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
         
@@ -535,7 +533,33 @@ the parallel loop because `kernels` allowed it to do so. More details on how to
 interpret this decomposition feedback and how to change the behavior will be
 discussed in a later chapter.
 
-----
+---
 
-***Add further performance analysis with the above approaches before moving on
-to the next chapter.***
+At this point we have expressed all of the parallelism in the example code and
+the compiler has parallelized it for an accelerator device. Analyzing the
+performance of this code may yield surprising results on some accelerators,
+however. The results below demonstrate the performance of this code on 1 - 8
+CPU threads (***ADD CPU SPEC***)and an NVIDIA Tesla K40 GPU using both
+implementations above. The *y axis* for figure _ is speed-up over the serial
+implementation, so larger is better.
+
+![Jacobi Iteration Performance - Step 1](images/jacobi_step1_graph.png)
+
+Notice that the performance of this code improves as CPU threads are added to
+the calcuation, but the OpenACC code on the NVIDIA GPU fall far short of the
+CPU version. Further performance analysis is necessary to identify the source
+of this slowdown. A variety of tools are available for performing this
+analysis, but since this performance study was compiled with the PGI compiler,
+the PGI internal timers will give us a high-level analysis of the performance.
+(***SHOULD I USE PGPROG INSTEAD?***)
+
+Notice in the above output that the the majority of the time is being spent
+doing memory copies. Since the test machine has two distinct memory spaces for
+the CPU and GPU memories, it's necessary to copy the data between the memory
+spaces. The next tool that may be helpful debugging the amount memory transfers
+is the NVIDIA Visual Profiler. The screenshot in figure _ shows NVIDIA Visual
+Profiler for ***2*** iterations of the convergence loop in the `kernels`
+version of the code.
+
+***NVVP SCREENSHOT***
+

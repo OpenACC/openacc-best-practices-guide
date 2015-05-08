@@ -27,7 +27,7 @@ the device via a `data` region and then initialized in an OpenACC
 loop. These arrays are then passed to the `cublasSaxpy` function as device
 pointers using the `host_data` region. 
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc data create(x[0:n]) copyout(y[0:n])
     {
       #pragma acc kernels
@@ -62,7 +62,7 @@ taken on them. The example below uses the `acc_malloc` function, which
 allocates device memory and returns a pointer, to allocate an array only on the
 device and then uses that array within an OpenACC region.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     void saxpy(int n, float a, float * restrict x, float * restrict y)
     {
       #pragma acc kernels deviceptr(x,y)
@@ -178,7 +178,7 @@ function may be called. In the example below the function `f1dev` is a sequentia
 function that will be called from each CUDA thread, so it is declared `acc
 routine seq`. 
 
-~~~~ {.numberLines}
+~~~~ {.cpp .numberLines}
     // Function implementation
     extern "C" __device__ void
     f1dev( float* a, float* b, int i ){

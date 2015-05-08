@@ -23,7 +23,7 @@ accelerator operations or computing other work that is unrelated to the work
 being performed by the accelerator. The code below demonstrates adding the
 `async` clause to a `parallel loop` and an `update` directive that follows.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop async
     for (int i=0; i<N; i++)
     {
@@ -34,7 +34,7 @@ being performed by the accelerator. The code below demonstrates adding the
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop async
     do i=1,N
       c(i) = a(i) + b(i)
@@ -53,7 +53,7 @@ to wait for past asynchronous operations to complete before proceeding. So, the
 above examples can be extended to include a synchronization before the data
 being copied by the `update` directive proceeds.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop async
     for (int i=0; i<N; i++)
     {
@@ -65,7 +65,7 @@ being copied by the `update` directive proceeds.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop async
     do i=1,N
       c(i) = a(i) + b(i)
@@ -92,7 +92,7 @@ both are needed before proceeding. This can be achieved by adding an `async`
 clause to an `wait`. This may seem unintuitive, so the code below demonstrates
 how this is done.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop async(1)
     for (int i=0; i<N; i++)
     {
@@ -115,7 +115,7 @@ how this is done.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop async(1)
     do i=1,N
       a(i) = i
@@ -172,7 +172,7 @@ function is a sequential function used to calculate the value of each pixel. It
 is left out of this chapter to save space, but is included in the full
 examples.)*
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc parallel loop
     for(int y=0;y<HEIGHT;y++) {
       for(int x=0;x<WIDTH;x++) {
@@ -183,7 +183,7 @@ examples.)*
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc parallel loop
     do iy=1,width
       do ix=1,HEIGHT
@@ -223,7 +223,7 @@ modify the `y` loop to only operate within the current block of work by
 updating its loop bounds with what we've calculated as the starting and ending
 values for the current block. The modified loop nests are shown below.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     int num_blocks = 8;
     for(int block = 0; block < num_blocks; block++ ) {
       int ystart = block * (HEIGHT/num_blocks),
@@ -239,7 +239,7 @@ values for the current block. The modified loop nests are shown below.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     num_batches=8
     batch_size=WIDTH/num_batches
     do yp=0,num_batches-1
@@ -272,7 +272,7 @@ we need to determine the size of each block to ensure that we update only the
 part of the image that coincides with the current block of work. The resulting
 code at the end of this step is below.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     int num_blocks = 8, block_size = (HEIGHT/num_blocks)*WIDTH;
     #pragma acc data create(image[WIDTH*HEIGHT])
     for(int block = 0; block < num_blocks; block++ ) {
@@ -290,7 +290,7 @@ code at the end of this step is below.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     num_batches=8
     batch_size=WIDTH/num_batches
     call cpu_time(startt)
@@ -326,7 +326,7 @@ asynchronously, it's critical that we add a `wait` directive after the block loo
 to ensure that all work completes before we attempt to use the image data from
 the host. The modified code is found below.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     int num_blocks = 8, block_size = (HEIGHT/num_blocks)*WIDTH;
     #pragma acc data create(image[WIDTH*HEIGHT])
     for(int block = 0; block < num_blocks; block++ ) {
@@ -345,7 +345,7 @@ the host. The modified code is found below.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     num_batches=8
     batch_size=WIDTH/num_batches
     call cpu_time(startt)
@@ -441,7 +441,7 @@ to complete. Since the `wait` directive is per-device, the loop will once again
 use `acc_get_device_type()` to select a device to wait on, and then use an
 `exit data` directive to deallocate the device memory. The final code is below.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     // Allocate arrays on both devices
     for (int gpu=0; gpu < 2 ; gpu ++)
     {
@@ -475,7 +475,7 @@ use `acc_get_device_type()` to select a device to wait on, and then use an
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     batch_size=WIDTH/num_batches
     do gpu=0,1
       call acc_set_device_num(gpu,acc_device_nvidia)
@@ -549,7 +549,7 @@ range can occur multiple times, we need to ensure that each element in the
 histogram array is updated atomically. The code below demonstrates using the
 `atomic` directive to generate a histogram.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc data copyin(a[0:N]) copyout(h[0:HN])
     for(int it=0;it<ITERS;it++)
     {
@@ -567,7 +567,7 @@ histogram array is updated atomically. The code below demonstrates using the
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc data copyin(a) copyout(h)
     do it=1,ITERS
       !$acc kernels
