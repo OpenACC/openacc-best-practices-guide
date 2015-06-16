@@ -135,7 +135,7 @@ particular architecture or even just the architectures in wide availability at
 the time, but to ensure that OpenACC could be used on future devices as well. 
 
 At its core OpenACC supports offloading of both computation and data from a
-*host* device to and *accelerator* device. In fact, these devices may be the
+*host* device to an *accelerator* device. In fact, these devices may be the
 same or may be completely different architectures, such as the case of a CPU
 host and GPU accelerator. The two devices may also have separate memory spaces
 or a single memory space. In the case that the two devices have different
@@ -157,7 +157,7 @@ programming models, such as CUDA or OpenCL, where host and accelerator memory
 is frequently represented by two distinct variables (`host_A[]` and
 `device_A[]`, for instance), it's important to remember that when using OpenACC
 a variable should be thought of as a single object, regardless of whether the
-it's backed by memory in one or two memory spaces. If one assumes that a
+it's backed by memory in one or more memory spaces. If one assumes that a
 variable represents two separate memories, depending on where it is used in the
 program, then it is possible to write programs that access the variable in
 unsafe ways, resulting in code that would not be portable to devices that share
@@ -179,7 +179,7 @@ specifics of these devices without making the language less portable. There
 will always be some optimizations that are possible in a lower-level
 programming model, such as CUDA or OpenCL, that cannot be represented at a high
 level. For instance, although OpenACC has the `cache` directive, some uses of
-*shared memory* on Nvidia GPUs are more easily represented using CUDA. The same
+*shared memory* on NVIDIA GPUs are more easily represented using CUDA. The same
 is true for any host or device: certain optimizations are too low-level for a
 high-level approach like OpenACC. It is up to the developers to determine the
 cost and benefit of selectively using a lower level programming language for

@@ -16,7 +16,9 @@ copying data that may be required, so that the program will still produce
 correct results. A programmer will have knowledge of what data is really needed
 and when it will be needed. The programmer will also have knowledge of how data
 may be shared between two functions, something that is difficult for a compiler
-to determine. 
+to determine. Even when does not immediately know how best to optimize data motion, 
+profiling tools may help the programmer identify when excess data movement occurs,
+as will be shown in the case study at the end of this chapter.
 
 The next step in the acceleration process is to provide the compiler with
 additional information about data locality to maximize reuse of data on the

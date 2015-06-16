@@ -1,6 +1,6 @@
-Parallelize Using OpenACC
-=========================
-Now that the importation hotspots in the application have been identified,
+Parallelize Loops
+=================
+Now that the important hotspots in the application have been identified,
 the programmer should incrementally accelerate these hotspots by adding OpenACC
 directives to the important loops within those routines. There is no reason to
 think about the movement of data at this point in the process, the OpenACC
@@ -283,7 +283,7 @@ loops at one time. OpenACC 1.0 compilers were forced to either inline all
 routines called within parallel regions or not parallelize loops containing
 routine calls at all. OpenACC 2.0 introduced the `routine` directive to address
 this shortcoming. The `routine` directive gives the compiler the necessary
-information about the function or subroutine and the loops is contains in order
+information about the function or subroutine and the loops it contains in order
 to parallelize the calling parallel region. The routine directive must be added
 to a function definition informing the compiler of the level of parallelism
 used within the routine. 
@@ -444,15 +444,15 @@ computational loop nests results in the following code.
             error = fmax( error, fabs(A[j][i] - Anew[j][i]));
           }
         }
-      }        
       
-      for( int j = 1; j < n-1; j++)
-      {
-        for( int i = 1; i < m-1; i++ )
+        for( int j = 1; j < n-1; j++)
         {
-          A[j][i] = Anew[j][i];
+          for( int i = 1; i < m-1; i++ )
+          {
+            A[j][i] = Anew[j][i];
+          }
         }
-      }
+      }        
       
       if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
       
@@ -540,20 +540,24 @@ the compiler has parallelized it for an accelerator device. Analyzing the
 performance of this code may yield surprising results on some accelerators,
 however. The results below demonstrate the performance of this code on 1 - 8
 CPU threads (***ADD CPU SPEC***)and an NVIDIA Tesla K40 GPU using both
-implementations above. The *y axis* for figure _ is speed-up over the serial
-implementation, so larger is better.
+implementations above. The *y axis* for figure _ is execution time in seconds,
+so smaller is better. For the two OpenACC versions, the bar is divided by time
+transferring data between the host and device, time executing on the device,
+and other time.
 
 ![Jacobi Iteration Performance - Step 1](images/jacobi_step1_graph.png)
 
 Notice that the performance of this code improves as CPU threads are added to
-the calcuation, but the OpenACC code on the NVIDIA GPU fall far short of the
-CPU version. Further performance analysis is necessary to identify the source
-of this slowdown. A variety of tools are available for performing this
-analysis, but since this performance study was compiled with the PGI compiler,
-the PGI internal timers will give us a high-level analysis of the performance.
-(***SHOULD I USE PGPROG INSTEAD?***)
+the calcuation and that the `kernels` version outperforms even the best CPU
+case by a large margin. The OpenACC `parallel loop` case, however, performs
+dramaticaly worse than even the slowest CPU version. Further performance
+analysis is necessary to identify the source of this slowdown. A variety of
+tools are available for performing this analysis, but since this performance
+study was compiled with the PGI compiler, the PGI internal timers will give us
+a high-level analysis of the performance.  (***SHOULD I USE PGPROG INSTEAD?***)
 
-Notice in the above output that the the majority of the time is being spent
+Notice in the above output that the majority of the time in the parallel loop
+version is being spent
 doing memory copies. Since the test machine has two distinct memory spaces for
 the CPU and GPU memories, it's necessary to copy the data between the memory
 spaces. The next tool that may be helpful debugging the amount memory transfers

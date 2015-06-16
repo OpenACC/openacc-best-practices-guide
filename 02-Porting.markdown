@@ -70,7 +70,7 @@ code as possible and by prioritizing the most time-consuming parts. A variety
 of tools may be used to identify important parts of the code, including simple
 application timers.
 
-#### Parallelize using OpenACC Directives ####
+#### Parallelize Loops ####
 Once important regions of the code have been identified, OpenACC directives
 should be used to accelerate these regions on the target device. Parallel loops
 within the code should be decorated with OpenACC directives to provide OpenACC
@@ -124,17 +124,17 @@ favor tightly-nested loops with a significant amount of data reuse. In many
 cases these same code changes also benefit more traditional CPU architectures as
 well by improving cache use and vectorization.
 
-OpenACC may be used to accelerate applications on devices that have a
-discrete memory or that have a memory space that's shared with the host. Even
-on devices that utilize a shared memory there is frequently still a hierarchy
-of a fast, close memory for the accelerator and a larger, slower memory used by
-the host. For this reason it is important to structure the application code
-maximize reuse of arrays regardless of whether the underlying architecture uses
-discrete or unified memories. When refactoring the code for use with OpenACC it
-is frequently beneficial to assume a discrete memory, even if the device you
-are developing on has a unified memory. This forces data locality to be a
-primary consideration in the refactoring and will ensure that the resulting
-code exploits hierarchical memories and is portable to a wide range of devices.
+OpenACC may be used to accelerate applications on devices that have a discrete
+memory or that have a memory space that's shared with the host. Even on devices
+that utilize a shared memory there is frequently still a hierarchy of a fast,
+close memory for the accelerator and a larger, slower memory used by the host.
+For this reason it is important to structure the application code to maximize
+reuse of arrays regardless of whether the underlying architecture uses discrete
+or unified memories. When refactoring the code for use with OpenACC it is
+frequently beneficial to assume a discrete memory, even if the device you are
+developing on has a unified memory. This forces data locality to be a primary
+consideration in the refactoring and will ensure that the resulting code
+exploits hierarchical memories and is portable to a wide range of devices.
 
 Case Study - Jacobi Iteration
 -----------------------------
@@ -147,7 +147,7 @@ calculates it value as the mean of its neighbors' values. The calculation will
 continue to iterate until either the maximum change in value between two
 iterations drops below some tolerance level or a maximum number of iterations
 is reached. For the sake of consistent comparison through the document the
-examples will always iteration 1000 times. The main iteration loop for both
+examples will always iterate 1000 times. The main iteration loop for both
 C/C++ and Fortran appears below.
 
 ~~~~ {.numberLines}
@@ -171,7 +171,6 @@ C/C++ and Fortran appears below.
             {
                 A[j][i] = Anew[j][i];
             }
-        }
         }
 
         if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
