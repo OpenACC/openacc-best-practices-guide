@@ -80,6 +80,9 @@ that happen between the two regions, but it still does not guarantee optimial
 data movement. In order to provide the information necessary to perform optimal
 data movement, the programmer can add data clauses to the `data` region.
 
+*Note:* An implicit data region is created by each `parallel` and `kernels`
+region.
+
 Data Clauses 
 ------------
 Data clauses give the programmer additional control over how and when data is
@@ -118,52 +121,6 @@ routines are frequently abbreviated, like `pcopyin` instead of
 data directives will be *present or*, so programmers should begin writing their
 applications using these directives to ensure correctness with future OpenACC
 specifications. This change will simplify data reuse for the programmer.
-
-----
-
-With these data clauses it is possible to further improve the example shown
-above by informing the compiler how and when it should perform data transfers.
-In this simple example above, the programmer knows that both `x` and `y` will
-be populated with data on the device, so neither will need to be copied to the
-device, but the results of `y` are significant, so it will need to be copied
-back to the host at the end of the calculation. The code below demonstrates
-using the `pcreate` and `pcopyout` directives to describe exactly this data
-locality to the compiler.
-
-~~~~ {.c .numberLines}
-    #pragma acc data pcreate(x) pcopyout(y)
-    {
-      #pragma acc parallel loop
-        for (i=0; i<N; i++)
-        {
-          y[i] = 0.0f;
-          x[i] = (float)(i+1);
-        }
-      
-      #pragma acc parallel loop
-        for (i=0; i<N; i++)
-        {
-          y[i] = 2.0f * x[i] + y[i];
-        }
-    }
-~~~~
-
-----
-
-~~~~ {.fortran .numberLines}
-    !$acc data pcreate(x) pcopyout(y)
-    !$acc parallel loop
-    do i=1,N
-      y(i) = 0
-      x(i) = i
-    enddo
-  
-    !$acc parallel loop
-    do i=1,N
-      y(i) = 2.0 * x(i) + y(i)
-    enddo
-    !$acc end data
-~~~~
 
 ### Shaping Arrays ###
 Sometimes a compiler will need some extra help determining the size and shape
@@ -226,6 +183,53 @@ adding shape information to each of the arrays.
     enddo
     !$acc end data
 ~~~~
+
+----
+
+With these data clauses it is possible to further improve the example shown
+above by informing the compiler how and when it should perform data transfers.
+In this simple example above, the programmer knows that both `x` and `y` will
+be populated with data on the device, so neither will need to be copied to the
+device, but the results of `y` are significant, so it will need to be copied
+back to the host at the end of the calculation. The code below demonstrates
+using the `pcreate` and `pcopyout` directives to describe exactly this data
+locality to the compiler.
+
+~~~~ {.c .numberLines}
+    #pragma acc data pcreate(x) pcopyout(y)
+    {
+      #pragma acc parallel loop
+        for (i=0; i<N; i++)
+        {
+          y[i] = 0.0f;
+          x[i] = (float)(i+1);
+        }
+      
+      #pragma acc parallel loop
+        for (i=0; i<N; i++)
+        {
+          y[i] = 2.0f * x[i] + y[i];
+        }
+    }
+~~~~
+
+----
+
+~~~~ {.fortran .numberLines}
+    !$acc data pcreate(x) pcopyout(y)
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 0
+      x(i) = i
+    enddo
+  
+    !$acc parallel loop
+    do i=1,N
+      y(i) = 2.0 * x(i) + y(i)
+    enddo
+    !$acc end data
+~~~~
+
 
 Unstructured Data Lifetimes
 ---------------------------
@@ -317,8 +321,8 @@ data array `arr`, and the pointer `arr` are available on the accelerator as
 well as the host. It is important to place the `enter data` directive after the
 class data has been initialized. Similarly `exit data` directives are added to
 the destructor to handle cleaning up the device memory. It is important to
-place this directive before array members are freed, because one the host
-copies are free the underlying pointer may become invalid, making it impossible
+place this directive before array members are freed, because once the host
+copies are freed the underlying pointer may become invalid, making it impossible
 to then free the device memory as well. For the same reason the `this` pointer
 should not be removed from the device until after all other memory has been
 released.
@@ -449,7 +453,7 @@ degree of parallelism on a parallel accelerator is often less than the cost of
 transferring arrays back and forth between the two memories. A developer may
 use a `parallel` region with just 1 gang as a way to offload a serial section
 of the code to the accelerator. For instance, in the code below the first and
-last elements of the array are ghost elements that need to be set to zero. A
+last elements of the array are host elements that need to be set to zero. A
 `parallel` region (without a `loop`) is used to perform the parts that are
 serial.
 
@@ -481,14 +485,14 @@ serial.
     !$acc end parallel
 ~~~~
 
-In the above example, the second `parallel` region will generate a small and
-launch a small kernel for setting the first and last elements. Small kernels
-generally do not run long enough to overcome the cost of a kernel launch on
-some offloading devices, such as GPUs. It's important that the data transfer
-saved by employing this technique is large enough to overcome the high cost of
-a kernel launch on some devices. Making both the `parallel loop` and the
-second `parallel` region could be made asynchronous (discussed in a later
-chapter) to reduce the cost of the second kernel launch.
+In the above example, the second `parallel` region will generate and launch a
+small kernel for setting the first and last elements. Small kernels generally
+do not run long enough to overcome the cost of a kernel launch on some
+offloading devices, such as GPUs. It's important that the data transfer saved
+by employing this technique is large enough to overcome the high cost of a
+kernel launch on some devices. Making both the `parallel loop` and the second
+`parallel` region could be made asynchronous (discussed in a later chapter) to
+reduce the cost of the second kernel launch.
 
 *Note: Because the `kernels` directive instructs the compiler to search for
 parallelism, there is no similar technique for `kernels`, but the `parallel`
@@ -496,7 +500,7 @@ approach above can be easily placed between `kernels` regions.*
 
 Case Study - Optimize Data Locality
 -----------------------------------
-By the end of the last chapter was had moved the main computational loops of
+By the end of the last chapter we had moved the main computational loops of
 our example code and, in doing so, introduced a significant amount of implicit
 data transfers. The performance profile for our code shows that for each
 iteration the `A` and `Anew` arrays are being copied back and forth between the

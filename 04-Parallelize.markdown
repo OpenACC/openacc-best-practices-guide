@@ -1,22 +1,22 @@
 Parallelize Loops
 =================
-Now that the important hotspots in the application have been identified,
-the programmer should incrementally accelerate these hotspots by adding OpenACC
+Now that the important hotspots in the application have been identified, the
+programmer should incrementally accelerate these hotspots by adding OpenACC
 directives to the important loops within those routines. There is no reason to
 think about the movement of data at this point in the process, the OpenACC
-compiler will automatically move data to and from the accelerator for any
-parallelism the programmer identifies in the code. By focusing solely on the
-parallelism during this step, the programmer can move as much computation to
-the device as possible and ensure that the program is still giving correct
-results before optimizing away data motion in the next step. During this step
-in the process it is common for the overall runtime of the application to
-increase, even if the execution of the individual loops is faster using the
-accelerator. This is because the compiler must take a cautious approach to data
-movement, frequently copying more data to and from the accelerator than is
-actually necessary. Even if overall execution time increases during this step,
-the developer should focus on expressing a significant amount of parallelism in
-the code before moving on to the next step and realizing a benefit from the
-directives.
+compiler will analyze the data needed in the identified region and
+automatically ensure that the data is available on the accelerator. By focusing
+solely on the parallelism during this step, the programmer can move as much
+computation to the device as possible and ensure that the program is still
+giving correct results before optimizing away data motion in the next step.
+During this step in the process it is common for the overall runtime of the
+application to increase, even if the execution of the individual loops is
+faster using the accelerator. This is because the compiler must take a cautious
+approach to data movement, frequently copying more data to and from the
+accelerator than is actually necessary. Even if overall execution time
+increases during this step, the developer should focus on expressing a
+significant amount of parallelism in the code before moving on to the next step
+and realizing a benefit from the directives.
 
 ----
 
@@ -84,14 +84,15 @@ discussed in a later section.
 The Parallel Construct
 ----------------------
 The `parallel` construct identifies a region of code that will be parallelized
-across OpenACC *gangs*. By itself the a `parallel` region is of limited use, but
-when paired with the `loop` directive (discussed in more detail later) the
+across OpenACC *gangs*. By itself the a `parallel` region is of limited use,
+but when paired with the `loop` directive (discussed in more detail later) the
 compiler will generate a parallel version of the loop for the accelerator.
 These two directives can, and most often are, combined into a single `parallel
 loop` directive. By placing this directive on a loop the programmer asserts
-that the affected loop is safe to parallelize however the compiler sees fit for the
-target device. The code below demonstrates the use of the `parallel loop`
-combined directive in both C/C++ and Fortran.
+that the affected loop is safe to parallelize and allows the compiler to select
+how to schedule the loop iterations on the target accelerator. The code below
+demonstrates the use of the `parallel loop` combined directive in both C/C++
+and Fortran.
 
 ~~~~ {.c .numberLines}
     #pragma acc parallel loop
@@ -137,18 +138,6 @@ other than the device on which the code is being developed, because details
 about how to parallelize the code are left to compiler knowledge rather than
 being hard-coded into the source. 
 
-***Best Practice:*** In the above example it would have also been correct to use a
-single `parallel` construct and simply place `loop` directives on each loop.
-The result of this would be a single parallel kernel that performs both the
-initialization and the calculation. While in this simple example it may make
-sense to do so to reduce the overhead of launching two simple accelerator kernels, in
-general accelerators tend to work best with separate `parallel loop` kernels because
-the compiler and hardware can better balance the use of harware resources. 
-
-***Editor Note: There's a balance between too many small loops and one loop
-that is too resource constrained. The above paragraph should probably do more
-to address that.***
-
 Differences Between Parallel and Kernels
 ----------------------------------------
 One of the biggest points of confusion for new OpenACC programmers is why the
@@ -184,7 +173,12 @@ aliased it will not be able to parallelize a loop that accesses those arrays.
 ***Best Practice:*** C programmers should use the `restrict` keyword (or the
 `__restrict` dectorator in C++) whenever possible to inform the compiler that
 the pointers are not aliased, which will frequently give the compiler enough
-information to then parallelize loops that it would not have otherwise. 
+information to then parallelize loops that it would not have otherwise. In
+addition to the `restrict` keyword, declaring constant variables using the
+`const` keyword may allow the compiler to use a read-only memory for that
+variable if such a memory exists on the accelerator. Use of `const` and
+`restrict` is a good programming practice in general, as it gives the compiler
+additional information that can be used when optimizing the code.
 
 Fortran programmers should also note that an OpenACC compiler will parallelize
 Fortran array syntax that is contained in a `kernels` construct. When using
@@ -286,15 +280,11 @@ this shortcoming. The `routine` directive gives the compiler the necessary
 information about the function or subroutine and the loops it contains in order
 to parallelize the calling parallel region. The routine directive must be added
 to a function definition informing the compiler of the level of parallelism
-used within the routine. 
-
-***Problem!!! Now that the levels of parallelism aren't discussed until the
-Optimize Loops chapter I don't have the basis needed to discuss routine. Either
-the levels of parallelism needs to return to the introduction or the routine
-directive needs to be moved to after the loops chapter.***
+used within the routine. OpenACC's *levels of parallelism* will be discussed in a
+later section.
 
 ###C++ Class Functions###
-
+***FIXME***
 
 Case Study - Parallelize
 ------------------------
@@ -329,7 +319,7 @@ programmer should always indicate reductions in the code.
 
 At this point the code looks like the examples below.
 
-~~~~ {.c .numberLines}
+~~~~ {.c .numberLines startFrom="52"}
     while ( error > tol && iter < iter_max )
     {
       error = 0.0;
@@ -364,7 +354,7 @@ At this point the code looks like the examples below.
       
 ----
 
-~~~~ {.fortran .numberLines}
+~~~~ {.fortran .numberLines startFrom="52"}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
         
@@ -428,7 +418,7 @@ inserting just one directive in the code and allowing the compiler to perform
 the parallel analysis. Adding a `kernels` construct around the two
 computational loop nests results in the following code.
 
-~~~~ {.c .numberLines}
+~~~~ {.c .numberLines startFrom="51"}
     while ( error > tol && iter < iter_max )
     {
       error = 0.0;
@@ -462,7 +452,7 @@ computational loop nests results in the following code.
 
 ----
 
-~~~~ {.fortran .numberLines}
+~~~~ {.fortran .numberLines startFrom="51"}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
         

@@ -231,9 +231,12 @@ The code used in this section implements a sparse, matrix-vector product (SpMV)
 operation. This means that a matrix and a vector will be multiplied together,
 but the matrix has very few elements that are not zero (it is *sparse*),
 meaning that calculating these values is unnecessary. The matrix is stored in a
-compressed format, where only the non-zero values from each row are stored,
-along with a data structure that describes where in the larger matrix these
-non-zero elements would reside. The code for this exercise is below.
+Compress Sparse Row (CSR) format. In CSR the sparse array, which may contain a
+significant number of cells whose value is zero, thus wasting a significant
+amount of memory, is stored using three, smaller arrays: one containing the
+non-zero values from the matrix, a second that describes where in a given row
+these non-zero elements would reside, and a third describing the columns in
+which the data would reside. The code for this exercise is below.
 
 ~~~~ {.c .numberLines}
     #pragma acc parallel loop

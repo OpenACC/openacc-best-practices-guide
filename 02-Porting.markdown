@@ -118,8 +118,8 @@ processors, however, are designed to execute fine-grained threads, which are
 short-lived and execute a minimal amount of work each. These parallel
 architectures achieve high throughput by trading single-threaded performance in
 favor of several orders in magnitude more parallelism. This means that when
-accelerating an application with OpenACC, which was primarily designed for use
-with these parallel accelerators, it may be necessary to refactor the code to
+accelerating an application with OpenACC, which was designed in light of 
+increased hardware parallelism, it may be necessary to refactor the code to
 favor tightly-nested loops with a significant amount of data reuse. In many
 cases these same code changes also benefit more traditional CPU architectures as
 well by improving cache use and vectorization.
@@ -139,16 +139,17 @@ exploits hierarchical memories and is portable to a wide range of devices.
 Case Study - Jacobi Iteration
 -----------------------------
 Throughout this guide we will use simple applications to demonstrate each step
-of the acceleration process. The first such application will implement a
-technique known as a Jacobi Iteration, which is a common, iterative technique
-for approximating an answer within some allowable tolerance. In the case of our
+of the acceleration process. The first such application will solve the
+2D-Laplace equation with the iterative Jacobi solver. Iterative methods are a
+common technique to approximate the solution of elliptic PDE’s, like the
+2D-Laplace equation, within some allowable tolerance. In the case of our
 example we will perform a simple stencil calculation where each point
 calculates it value as the mean of its neighbors' values. The calculation will
 continue to iterate until either the maximum change in value between two
 iterations drops below some tolerance level or a maximum number of iterations
 is reached. For the sake of consistent comparison through the document the
-examples will always iterate 1000 times. The main iteration loop for both
-C/C++ and Fortran appears below.
+examples will always iterate 1000 times. The main iteration loop for both C/C++
+and Fortran appears below.
 
 ~~~~ {.numberLines}
     while ( error > tol && iter < iter_max )
@@ -232,10 +233,7 @@ into `Anew`. If this is the last iteration of the convergence loop, `A` will be
 the final, converged value. If the problem has not yet converged, then `A` will
 serve as the input for the next iteration. As with the above loop nest, each
 iteration of this loop nest is independent of each other and is safe to
-parallelize. A common optimization for this method is to use two pointers so
-that with each iteration the pointer to the current and next values will simply
-be swapped to avoid expensive memory copies. For the sake of simplicity the
-example code forgoes this optimization.
+parallelize. 
 
 In the coming sections we will accelerate this simple application using the
 method described in this document. 

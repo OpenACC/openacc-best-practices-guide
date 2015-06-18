@@ -550,37 +550,29 @@ histogram array is updated atomically. The code below demonstrates using the
 `atomic` directive to generate a histogram.
 
 ~~~~ {.c .numberLines}
-    #pragma acc data copyin(a[0:N]) copyout(h[0:HN])
-    for(int it=0;it<ITERS;it++)
-    {
-      #pragma acc parallel loop
-      for(int i=0;i<HN;i++)
-        h[i]=0;
- 
-      #pragma acc parallel loop
-      for(int i=0;i<N;i++) {
-        #pragma acc atomic update
-        h[a[i]]+=1;
-      }
+    #pragma acc parallel loop
+    for(int i=0;i<HN;i++)
+      h[i]=0;
+
+    #pragma acc parallel loop
+    for(int i=0;i<N;i++) {
+      #pragma acc atomic update
+      h[a[i]]+=1;
     }
 ~~~~
 
 ---
 
 ~~~~ {.fortran .numberLines}
-    !$acc data copyin(a) copyout(h)
-    do it=1,ITERS
-      !$acc kernels
-      h(:) = 0
-      !$acc end kernels
-      !$acc parallel loop
-      do i=1,N
-        !$acc atomic
-        h(a(i)) = h(a(i)) + 1
-      enddo
-      !$acc end parallel loop
+    !$acc kernels
+    h(:) = 0
+    !$acc end kernels
+    !$acc parallel loop
+    do i=1,N
+      !$acc atomic
+      h(a(i)) = h(a(i)) + 1
     enddo
-    !$acc end data
+    !$acc end parallel loop
 ~~~~
 
 Notice that updates to the histogram array `h` are performed atomically.
