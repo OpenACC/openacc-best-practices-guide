@@ -341,6 +341,17 @@ compiler that no data movement is necessary.
 addition of a device to device memory copy API routine, which will simplify the
 above copy constructor.*
 
+----
+
+The same technique used in the class constructor and destructor above can be
+used in other programming languages as well. For instance, it's common practice
+in Fortran codes to have a subroutine that allocate and initialize all arrays
+contained within a module. Such a routine is a natural place to use an `enter
+data` region, as the allocation of both the host and device memory will appear
+within the same routine in the code. Placing `enter data` and `exit data`
+directives in close proximity to the usual allocation and deallocation of data
+within the code simplifies code maintenance.
+
 Update Directive
 ----------------
 Keeping data resident on the accelerator is often key to obtaining high

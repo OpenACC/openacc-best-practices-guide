@@ -129,7 +129,7 @@ how this is done.
     do i=1,N
       c(i) = a(i) + b(i)
     end do
-    !$acc update self(c) async
+    !$acc update self(c) async(2)
     !$acc wait
 ~~~~
 

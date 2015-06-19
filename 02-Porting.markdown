@@ -141,7 +141,7 @@ Case Study - Jacobi Iteration
 Throughout this guide we will use simple applications to demonstrate each step
 of the acceleration process. The first such application will solve the
 2D-Laplace equation with the iterative Jacobi solver. Iterative methods are a
-common technique to approximate the solution of elliptic PDE’s, like the
+common technique to approximate the solution of elliptic PDEs, like the
 2D-Laplace equation, within some allowable tolerance. In the case of our
 example we will perform a simple stencil calculation where each point
 calculates it value as the mean of its neighbors' values. The calculation will

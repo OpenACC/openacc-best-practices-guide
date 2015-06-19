@@ -1,7 +1,7 @@
 OpenACC Interoperability
 ========================
 The authors of OpenACC recognized that it may sometimes be beneficial to mix
-OpenACC code with code acceleratd using other parallel programming languages,
+OpenACC code with code accelerated using other parallel programming languages,
 such as CUDA or OpenCL, or accelerated math libraries. This interoperability
 means that a developer can choose the programming paradigm that makes the most
 sense in the particular situation and leverage code and libraries that may
@@ -135,12 +135,12 @@ OpenACC specification and their compiler's documentation for a full list of
 supported features.
 
 ###Asynchronous Queues and CUDA Streams (NVIDIA)
-As already demonstrated, asynchronous work queues are frequently an important
-way to deal with the cost of PCIe data transfers on devices with distinct host
-and device memory. In the NVIDIA CUDA programming model asynchronous operations
-are programmed using CUDA streams. Since developers may need to interoperate
-between CUDA streams and OpenACC queues, the specification suggests two
-routines for mapping CUDA streams and OpenACC asynchronous queues.
+As demonstrated in the next chapter, asynchronous work queues are frequently an
+important way to deal with the cost of PCIe data transfers on devices with
+distinct host and device memory. In the NVIDIA CUDA programming model
+asynchronous operations are programmed using CUDA streams. Since developers may
+need to interoperate between CUDA streams and OpenACC queues, the specification
+suggests two routines for mapping CUDA streams and OpenACC asynchronous queues.
 
 The `acc_get_cuda_stream` function accepts an integer async id and returns a
 CUDA stream object (as a void\*) for use as a CUDA stream.

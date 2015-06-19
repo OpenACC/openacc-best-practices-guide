@@ -12,10 +12,6 @@ with the PGI OpenACC compiler will be used for CPU profiling. When accelerator
 profiling is needed, the application will be run on an Nvidia GPU and the
 Nvidia Visual Profiler will be used.
 
-***NOTE: May choose to fall back to PGI_ACC_TIME or nvprof occaisionally, since
-the text would be easy to understand. PGPROF also has GPU profiling, but I
-haven't used it yet so I don't know whether it's as useful as NVVP.***
-
 Baseline Profiling
 ------------------
 Before parallelizing an application with OpenACC the programmer must first

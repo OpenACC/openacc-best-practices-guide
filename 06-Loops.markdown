@@ -74,7 +74,7 @@ clauses below inform the compiler which level of parallelism should be used to
 for the given loop.
 
 * Gang clause - partition the loop across gangs
-* Worder clause - partition the loop across workers
+* Worker clause - partition the loop across workers
 * Vector clause - vectorize the loop
 * Seq clause - do not partition this loop, run it sequentially instead
 
@@ -182,16 +182,16 @@ all other device types.
 Collapse Clause
 ---------------
 When a code contains tightly nested loops it is frequently beneficial to
-*collapse* these loops into a single loop. Collpsing loops means that two loops
+*collapse* these loops into a single loop. Collapsing loops means that two loops
 of trip counts N and M respectively will be automatically turned into a single
 loop with a trip count of N times M. By collapsing two or more parallel loops into a
-single loop the compiler has an increased amoutn of parallelism to use when
+single loop the compiler has an increased amount of parallelism to use when
 mapping the code to the device. On highly parallel architectures, such as GPUs,
 this can result in improved performance. Additionally, if a loop lacked
 sufficient parallelism for the hardware by itself, collapsing it with another
 loop multiplies the available parallelism. This is especially beneficial on
 vector loops, since some hardware types will require longer vector lengths to
-acheive high performance than others. The code below demonstrates how to use
+achieve high performance than others. The code below demonstrates how to use
 the collapse directive.
 
     Find a good code example that shows a nice speed-up and explain the speedup
@@ -340,7 +340,7 @@ Below is the modified code using a vector length of 32.
 Notice that I have now explicitly informed the compiler that the innermost loop
 should be a vector loop, to ensure that the compiler will map the parallelism
 exactly how I wish. I can try different vector lengths to find the optimal
-value for my accelerator by modifying the `num_gangs` clause. Below is a graph
+value for my accelerator by modifying the `vector_length` clause. Below is a graph
 showing the relative speed-up of varying the vector length
 compared to the compiler-selected value.
 
@@ -408,5 +408,6 @@ optimizations demonstrated in this section, because these clauses will likely
 differ from accelerator to accelerator. By using the `device_type` clause it's
 possible to provide this information only on accelerators where the
 optimizations apply and allow the compiler to make its own decisions on other
-architectures.
+architectures. The OpenACC specification specifically suggests `nvidia`,
+`radeon`, and `xeonphi` as three common device type strings.
 
