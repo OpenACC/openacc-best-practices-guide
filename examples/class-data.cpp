@@ -61,6 +61,11 @@ template <class ctype> class Data
 #pragma acc update self(arr[0:len])
       ;
     }
+    void update_device()
+    {
+#pragma acc update device(arr[0:len])
+      ;
+    }
 #endif    
 };
 
