@@ -16,14 +16,14 @@ of which are optional but provide the compiler with additional information.
 In C and C++, these directives take the form of a pragma. The example code
 below shows the OpenACC `kernels` directive without any additional clauses
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines}
     #pragma acc kernels
 ~~~~
 
 In Fortran, the directives take the form of a special comment, as demonstrated
 below.
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines}
     !$acc kernels
 ~~~~
 
@@ -151,7 +151,7 @@ is reached. For the sake of consistent comparison through the document the
 examples will always iterate 1000 times. The main iteration loop for both C/C++
 and Fortran appears below.
 
-~~~~ {.numberLines}
+~~~~ {.c .numberLines startFrom="52"}
     while ( error > tol && iter < iter_max )
     {
         error = 0.0;
@@ -182,7 +182,7 @@ and Fortran appears below.
 
 ---
 
-~~~~ {.numberLines}
+~~~~ {.fortran .numberLines startFrom="52"}
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
   
@@ -194,14 +194,14 @@ and Fortran appears below.
         end do
       end do
   
-      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
-      iter = iter + 1
-  
       do j=1,m-2
         do i=1,n-2
           A(i,j) = Anew(i,j)
         end do
       end do
+  
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
   
     end do
 ~~~~

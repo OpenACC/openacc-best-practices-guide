@@ -327,7 +327,6 @@ At this point the code looks like the examples below.
       #pragma acc parallel loop reduction(max:error) 
       for( int j = 1; j < n-1; j++)
       {
-        #pragma acc loop
         for( int i = 1; i < m-1; i++ )
         {
           A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
@@ -339,7 +338,6 @@ At this point the code looks like the examples below.
       #pragma acc parallel loop
       for( int j = 1; j < n-1; j++)
       {
-      #pragma acc loop
         for( int i = 1; i < m-1; i++ )
         {
           A[j][i] = Anew[j][i];
@@ -368,38 +366,38 @@ At this point the code looks like the examples below.
         end do
       end do
 
-      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
-      iter = iter + 1
-
       !$acc parallel loop
       do j=1,m-2
         do i=1,n-2
           A(i,j) = Anew(i,j)
         end do
       end do
+
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
     end do
 ~~~~    
 
-Building the above code using the PGI compiler (version 14.10) produces the
+Building the above code using the PGI compiler (version 15.5) produces the
 following compiler feedback (showing for C, but the Fortran output is similar).
 
-    $ pgcc -acc -Minfo=accel laplace2d.c
+    $ pgcc -acc -ta=tesla -Minfo=accel laplace2d-parallel.c
     main:
          56, Accelerator kernel generated
+             56, Max reduction generated for error
              57, #pragma acc loop gang /* blockIdx.x */
-             60, #pragma acc loop vector(256) /* threadIdx.x */
-             64, Max reduction generated for error
-         56, Generating present_or_copyout(Anew[1:4094][1:4094])
-             Generating present_or_copyin(A[:][:])
+             59, #pragma acc loop vector(128) /* threadIdx.x */
+         56, Generating copyout(Anew[1:4094][1:4094])
+             Generating copyin(A[:][:])
              Generating Tesla code
-         60, Loop is parallelizable
-         68, Accelerator kernel generated
-             69, #pragma acc loop gang /* blockIdx.x */
-             72, #pragma acc loop vector(256) /* threadIdx.x */
-         68, Generating present_or_copyin(Anew[1:4094][1:4094])
-             Generating present_or_copyout(A[1:4094][1:4094])
+         59, Loop is parallelizable
+         67, Accelerator kernel generated
+             68, #pragma acc loop gang /* blockIdx.x */
+             70, #pragma acc loop vector(128) /* threadIdx.x */
+         67, Generating copyin(Anew[1:4094][1:4094])
+             Generating copyout(A[1:4094][1:4094])
              Generating Tesla code
-         72, Loop is parallelizable
+         70, Loop is parallelizable
 
 Analyzing the compiler feedback gives the programmer the ability to ensure that
 the compiler is producing the expected results and fix any problems if it's not.
@@ -464,9 +462,6 @@ computational loop nests results in the following code.
           error = max( error, abs(A(i,j) - Anew(i,j)) )
         end do
       end do
-        
-      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
-      iter = iter + 1
 
       do j=1,m-2
         do i=1,n-2
@@ -474,6 +469,9 @@ computational loop nests results in the following code.
         end do
       end do
       !$acc end kernels
+        
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
     end do
 ~~~~    
     
@@ -492,23 +490,23 @@ analysis to determine where parallelism may be found.
 Taking a look at the compiler output points to some more subtle differences
 between the two approaches.
 
-    $ pgcc -acc -Minfo=accel laplace2d.c
+    $ pgcc -acc -ta=tesla -Minfo=accel laplace2d-kernels.c
     main:
-         54, Generating present_or_copyout(Anew[1:4094][1:4094])
+         56, Generating copyout(Anew[1:4094][1:4094])
              Generating copyin(A[:][:])
              Generating copyout(A[1:4094][1:4094])
              Generating Tesla code
-         57, Loop is parallelizable
-         59, Loop is parallelizable
+         58, Loop is parallelizable
+         60, Loop is parallelizable
              Accelerator kernel generated
-             57, #pragma acc loop gang /* blockIdx.y */
-             59, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
-             63, Max reduction generated for error
-         67, Loop is parallelizable
-         69, Loop is parallelizable
+             58, #pragma acc loop gang /* blockIdx.y */
+             60, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
+             64, Max reduction generated for error
+         68, Loop is parallelizable
+         70, Loop is parallelizable
              Accelerator kernel generated
-             67, #pragma acc loop gang /* blockIdx.y */
-             69, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
+             68, #pragma acc loop gang /* blockIdx.y */
+             70, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
 
 The first thing to notice from the above output is that the compiler correctly
 identified all four loops as being parallelizable and generated kernels from

@@ -528,43 +528,41 @@ below.
 *Note: The changes required during this step are the same for both versions of
 the code, so only the `parallel loop` version will be shown.*
 
-~~~~ {.c .numberLines}
-    #pragma acc data copy(A) create(Anew)
-    while ( error > tol && iter < iter_max )
-    {
-      error = 0.0;
-      
-      #pragma acc parallel loop reduction(max:error) 
-      for( int j = 1; j < n-1; j++)
-      {
-        #pragma acc loop
-        for( int i = 1; i < m-1; i++ )
+~~~~ {.c .numberLines startFrom="51"}
+    #pragma acc data copy(A[1:n][1:m]) create(Anew[n][m])
+        while ( error > tol && iter < iter_max )
         {
-          A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
-                           + Anew[j-1][i] + Anew[j+1][i]);
-          error = fmax( error, fabs(A[j][i] - Anew[j][i]));
+            error = 0.0;
+    
+    #pragma acc parallel loop reduction(max:error)
+            for( int j = 1; j < n-1; j++)
+            {
+                for( int i = 1; i < m-1; i++ )
+                {
+                    Anew[j][i] = 0.25 * ( A[j][i+1] + A[j][i-1]
+                                        + A[j-1][i] + A[j+1][i]);
+                    error = fmax( error, fabs(Anew[j][i] - A[j][i]));
+                }
+            }
+    
+    #pragma acc parallel loop
+            for( int j = 1; j < n-1; j++)
+            {
+                for( int i = 1; i < m-1; i++ )
+                {
+                    A[j][i] = Anew[j][i];
+                }
+            }
+    
+            if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
+    
+            iter++;
         }
-      }
-
-      #pragma acc parallel loop
-      for( int j = 1; j < n-1; j++)
-      {
-      #pragma acc loop
-        for( int i = 1; i < m-1; i++ )
-        {
-          A[j][i] = Anew[j][i];
-        }
-      }
-      
-      if(iter % 100 == 0) printf("%5d, %0.6f\n", iter, error);
-      
-      iter++;
-    }
 ~~~~    
       
 ----
 
-~~~~ {.fortran .numberLines}
+~~~~ {.fortran .numberLines startFrom="51"}
     !$acc data copy(A) create(Anew)
     do while ( error .gt. tol .and. iter .lt. iter_max )
       error=0.0_fp_kind
@@ -579,15 +577,15 @@ the code, so only the `parallel loop` version will be shown.*
         end do
       end do
 
-      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
-      iter = iter + 1
-
       !$acc parallel loop
       do j=1,m-2
         do i=1,n-2
           A(i,j) = Anew(i,j)
         end do
       end do
+
+      if(mod(iter,100).eq.0 ) write(*,'(i5,f10.6)'), iter, error
+      iter = iter + 1
     end do
     !$acc end data
 ~~~~    
