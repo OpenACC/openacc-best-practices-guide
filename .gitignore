@@ -12,3 +12,5 @@ core
 *.out
 *.toc
 *.ccff
+~$*
+*.html

@@ -433,6 +433,7 @@ non-portable.
     #pragma acc exit data
 ~~~~
 
+<!---
 Cache Directive
 ---------------
 ***Delaying slightly because the cache directive is still being actively
@@ -457,6 +458,7 @@ declare that these variables should be available on the device. The `declare`
 directive has many complexities, which will be discussed as needed, so this
 section will only discuss it in the context of global variables in C anc C++
 and common blocks in Fortran.
+--->
 
 Best Practice: Offload Inefficient Operations to Maintain Data Locality
 -----------------------------------------------------------------------
@@ -601,8 +603,14 @@ this calculation. Using the Nvidia Visual Profiler again, we see that each
 data transfers now only occur at the beginning and end of the data region and
 that the time between each iterations is much less. 
 
+![NVIDIA Visual Profiler showing 2 iterations of the Jacobi solver after adding
+the OpenACC data region.](images/jacobi_step2_nvvp.png)
+
 Looking at the final performance of this code, we see that the time for the
 OpenACC code on a GPU is now much faster than even the best threaded CPU code.
+
+![Runtime of Jacobi Iteration after adding OpenACC data
+region](images/jacobi_step2_graph.png)
 
 This ends the Jacobi Iteration case study. The simplicity of this
 implementation generally shows very good speed-ups with OpenACC, often leaving

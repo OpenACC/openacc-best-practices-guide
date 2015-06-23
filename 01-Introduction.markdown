@@ -6,7 +6,7 @@ show results using a given compiler or accelerator, the information presented
 in this document is intended to address all architectures both available at
 publication time and well into the future. Readers should be comfortable with
 C, C++, or Fortran, but do not need experience with parallel programming or
-accelerated computing. 
+accelerated computing, although such experience will be helpful. 
 
 Writing Portable Code
 ---------------------

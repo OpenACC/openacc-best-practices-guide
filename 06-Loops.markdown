@@ -29,9 +29,6 @@ next fastest varying dimension. Arranging loops in this increasing manner will
 frequently improve cache efficiency and improve vectorization on most
 architectures. 
 
-***Can we call out any exceptions to this rule of thumb or would that cause
-more harm than good?***
-
 OpenACC's 3 Levels of Parallelism
 ---------------------------------
 OpenACC defines three levels of parallelism: *gang*, *worker*, and *vector*.
@@ -194,10 +191,36 @@ vector loops, since some hardware types will require longer vector lengths to
 achieve high performance than others. The code below demonstrates how to use
 the collapse directive.
 
-    Find a good code example that shows a nice speed-up and explain the speedup
-    below.
+~~~~ {.fortran .numberLines}    
+    ! $acc parallel loop gang collapse (2)
+    do ie = 1 , nelemd
+      do q = 1 , qsize
+        ! $acc loop vector collapse (3)
+        do k = 1 , nlev
+          do j = 1 , np
+            do i = 1 , np
+              qtmp = elem (ie )% state % qdp (i,j,k,q, n0_qdp )
+              vs1tmp = vstar (i,j,k ,1, ie) * elem (ie )% metdet (i,j) * qtmp
+              vs2tmp = vstar (i,j,k ,2, ie) * elem (ie )% metdet (i,j) * qtmp
+              gv(i,j,k ,1) = ( dinv (i,j ,1 ,1 , ie )* vs1tmp + dinv (i,j ,1 ,2, ie )* vs2tmp )
+              gv(i,j,k ,2) = ( dinv (i,j ,2 ,1 , ie )* vs1tmp + dinv (i,j ,2 ,2, ie )* vs2tmp )
+            enddo
+          enddo
+        enddo
+      enddo
+    enddo
+~~~~
 
-***This section will grow when an example is added above.***
+The above code is an excerpt from a real application where collapsing loops
+extended the parallelism available to be exploited. On line 1, the two
+outermost loops are collapsed together to make it possible to generate *gangs*
+across the iterations of both loops, thus making the total number of gangs
+`nelemd` x `qsize` rather than just `nelemd`. The collapse at line 4 collapses
+together 3 small loops to increase the possible *vector length*, as none of the
+loops iterate for enough trips to create a reasonable vector length on the
+target accelerator. How much this optimization will speed-up the code will vary
+according to the application and the target accelerator, but it's not uncommon
+to see large speed-ups by using collapse on loop nests.
 
 Routine Parallelism
 -------------------
@@ -283,9 +306,23 @@ particularly those similar to NVIDIA GPUs, but it will be necessary to make
 certain optimization decisions based on the particular accelerator in use.***
 
 In examining the compiler feedback from the code shown above, I know that the
-compiler has chosen to use a vector length of \_\_\_ on the innermost loop. I
+compiler has chosen to use a vector length of 256 on the innermost loop. I
 could have also obtained this information from a runtime profile of the
-application. Based on my knowledge of the matrix, I know that this is
+application. 
+
+~~~~
+    matvec(const matrix &, const vector &, const vector &):
+          7, include "matrix_functions.h"
+              12, Generating present(row_offsets[:],cols[:],Acoefs[:],xcoefs[:],ycoefs[:])
+                  Accelerator kernel generated
+                  15, #pragma acc loop gang /* blockIdx.x */
+                  20, #pragma acc loop vector(256) /* threadIdx.x */
+                      Sum reduction generated for sum
+              12, Generating Tesla code
+              20, Loop is parallelizable
+~~~~
+
+Based on my knowledge of the matrix, I know that this is
 significantly larger than the typical number of non-zeros per row, so many of
 the *vector lanes* on the accelerator will be wasted because there's not
 sufficient work for them. The first thing to try in order to improve
@@ -339,7 +376,8 @@ value for my accelerator by modifying the `vector_length` clause. Below is a gra
 showing the relative speed-up of varying the vector length
 compared to the compiler-selected value.
 
-***INSERT GRAPH***
+![Relative speed-up from varying vector_length from the default value of
+256](images/spmv_speedup_vector_length.png)
 
 Notice that the best performance comes from the smallest vector length. Again,
 this is because the number of non-zeros per row is very small, so a small
@@ -391,11 +429,15 @@ In this version of the code, I've explicitly mapped the outermost look to both
 gang and worker parallelism and will vary the number of workers using the
 `num_workers` clause. The results follow.
 
-***INSERT GRAPH***
+![Speed-up from varying number of workers for a vector length of
+32.](images/spmv_speedup_num_workers.png)
 
 On this particular hardware, the best performance comes from a vector length of
 32 and 32 workers. This turns out to be the maximum amount of parallelism that
-the particular accelerator being use supports within a gang.
+the particular accelerator being used supports within a gang. In this case, we
+observed a 1.3X speed-up from decreasing the vector length and another 2.1X
+speed-up from varying the number of workers within each gang, resulting in an
+overall 2.9X performance improvement from the untuned OpenACC code.
 
 ***Best Pratice:*** Although not shown in order to save space, it's generally
 best to use the `device_type` clause whenever specifying the sorts of

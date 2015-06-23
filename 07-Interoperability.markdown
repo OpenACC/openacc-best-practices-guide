@@ -119,10 +119,12 @@ obtaining the device and host addresses of pointers based on the host and
 device addresses, respectively. These routines require that the addresses
 actually have corresponding addresses, otherwise they will return NULL.
 
+<!---
 Mapping Arrays
 --------------
 ***This is a pretty complicated thing to explain. Would anyone object to it
 being left out?***
+--->
 
 Additional Vendor-Specific Interoperability Features
 ----------------------------------------------------
