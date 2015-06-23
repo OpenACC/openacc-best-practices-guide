@@ -199,11 +199,6 @@ the collapse directive.
 
 ***This section will grow when an example is added above.***
 
-Tile Clause
------------
-***NOTE: I'm tempted to leave this off because I've yet to find a case where it
-was beneficial.***
-
 Routine Parallelism
 -------------------
 A previous chapter introduced the `routine` directive for calling functions and
@@ -288,7 +283,7 @@ particularly those similar to NVIDIA GPUs, but it will be necessary to make
 certain optimization decisions based on the particular accelerator in use.***
 
 In examining the compiler feedback from the code shown above, I know that the
-compiler has chosen to use a vector length of ___ on the innermost loop. I
+compiler has chosen to use a vector length of \_\_\_ on the innermost loop. I
 could have also obtained this information from a runtime profile of the
 application. Based on my knowledge of the matrix, I know that this is
 significantly larger than the typical number of non-zeros per row, so many of
@@ -296,7 +291,7 @@ the *vector lanes* on the accelerator will be wasted because there's not
 sufficient work for them. The first thing to try in order to improve
 performance is to adjust the vector length used on the innermost loop. I happen
 to know that the compiler I'm using will restrict me to using multiples of the
-*warp size* of this processor (***REFERENCE SOME NVIDIA DOCUMENT HERE?***),
+*warp size* (the minimum SIMT execution size on NVIDIA GPUs) of this processor,
 which is 32. This detail will vary according to the accelerator of choice.
 Below is the modified code using a vector length of 32.
 
@@ -396,7 +391,7 @@ In this version of the code, I've explicitly mapped the outermost look to both
 gang and worker parallelism and will vary the number of workers using the
 `num_workers` clause. The results follow.
 
-*** INSERT GRAPH ***
+***INSERT GRAPH***
 
 On this particular hardware, the best performance comes from a vector length of
 32 and 32 workers. This turns out to be the maximum amount of parallelism that

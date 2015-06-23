@@ -1,12 +1,20 @@
 Optimize Data Locality
 ======================
-***I don't like how this is starting at all, I'll need to revisit this and give it
-another shot.***
-
-Data locality means that data used in device or host memory should remain local
-to that memory for as long as it's needed. This idea may also be thought of as
+At the end of the previous chapter we saw that although we've moved the most
+compute intensive parts of the application to the accelerator, sometimes the
+process of copying data from the host to the accelerator and back will be more
+costly than the computation itself. This is because it's difficult for a
+compler to determine when (or if) the data will be needed in the future, so it
+must be cautious and ensure that the data will be copied in case it's needed.
+To improve upon this, we'll explot the *data locality* of the application. Data
+locality means that data used in device or host memory should remain local to
+that memory for as long as it's needed. This idea is sometimes referred to as
 optimizing data reuse or optimizing away unnecessary data copies between the
-host and device memories. 
+host and device memories. However you think of it, providing the compiler with
+the information necessary to only relocate data when it needs to do so is
+frequently the key to success with OpenACC.
+
+----
 
 After expressing the parallelism of a program's important regions it's
 frequently necessary to provide the compiler with additional information about
@@ -336,10 +344,6 @@ loop is used to copy each individual element to from one array to the other.
 Because we know that the `Data` object passed in will also have its members on
 the device, we use a `present` clause on the `parallel loop` to inform the
 compiler that no data movement is necessary.
-
-*NOTE: At time of writing, the OpenACC technical committee is investigating the
-addition of a device to device memory copy API routine, which will simplify the
-above copy constructor.*
 
 ----
 

@@ -7,7 +7,7 @@ performance analysis tool is outside of the scope of this document. The purpose
 of this section is to provide guidance on choosing important sections of code
 for acceleration, which is independent of the profiling tools available. 
 
-Because this document is focused on OpenACC, the PGPROF tool, which is provided
+Because this document is focused on OpenACC, the PGProf tool, which is provided
 with the PGI OpenACC compiler will be used for CPU profiling. When accelerator
 profiling is needed, the application will be run on an Nvidia GPU and the
 Nvidia Visual Profiler will be used.
@@ -70,3 +70,81 @@ it is only available on NVIDIA platforms.
 
 Case Study - Analysis
 ---------------------
+To get a better understanding of the case study program we will use the
+PGProf utility that comes as a part of the PGI Workstation package. First,
+it's necessary to build the executable to embed the compiler feedback into the
+executable using the *common compiler feedback framework*  (CCFF) feature of
+the PGI compiler. This feature is enabled with the `-Mprof=ccff` compiler flag
+and embeds additional information into the executable that can then be used by
+the PGProf utility to display additional information about how the compiler
+optimized the code. The executable is built with the following command:
+
+~~~~
+    $ pgcc -fast -Minfo=all -Mprof=ccff laplace2d.c
+    main:
+         41, Loop not fused: function call before adjacent loop
+             Loop not vectorized: may not be beneficial
+             Unrolled inner loop 4 times
+             Generated 3 prefetches in scalar loop
+         58, Generated an alternate version of the loop
+             Generated vector sse code for the loop
+             Generated 3 prefetch instructions for the loop
+         68, Memory copy idiom, loop replaced by call to __c_mcopy8
+~~~~
+
+Once the executable has been built, the `pgcollect` command will run the
+executable and gather information that can be used by PGProf to profile the
+executable. 
+
+~~~~
+    $ pgcollect ./a.out
+    Jacobi relaxation Calculation: 4096 x 4096 mesh
+        0, 0.250000
+      100, 0.002397
+      200, 0.001204
+      300, 0.000804
+      400, 0.000603
+      500, 0.000483
+      600, 0.000403
+      700, 0.000345
+      800, 0.000302
+      900, 0.000269
+     total: 76.340051 s
+    target process has terminated, writing profile data
+~~~~
+
+Once the data has been collected, it can be visualized using the `pgprof`
+command, which will open a PGProf window.
+
+~~~~
+    $ pgprof -exe ./a.out
+~~~~
+
+When PGPROG opens we see that the vast majority of the time is spent in two
+routines: main and \_\_c\_mcopy8. A screenshot of the initial screen for PGProf
+is show in figure 2.1. Since the code for this case study is
+completely within the main function of the program, it's not surprising that
+nearly all of the time is spent in main, but in larger applications it's likely
+that the time will be spent in several other routines. 
+
+![PGProf initial profile window showing 75% of runtime in main and 25% in a
+memory copy routine.](images/ch2-pgprof-initial.png)
+
+Clicking into the main function we can see that nearly all of the runtime
+within main comes from the loop that calculates the next value for A. This is
+shown in figure 2.2. What is not obvious from the profiler output,
+however, is that the time spent in the memory copy routine shown in the initial
+screen is actually the second loop nest, which performs the array swap at the
+end of each iteration. The compiler output shows above (and is reiterated in
+PGProf) that the loop at line 68 was replaced by a memory copy, because doing
+so is more efficient than copying each element individually. So what the
+profiler is really showing us is that the major hotspots for our application
+are the loop nest that calculate `Anew` from `A` and the loop nest that copies
+from `Anew` to `A` for the next iteration, so we'll concentrate our efforts on
+these two loop nests.
+
+![PGProf analysis of the major compute kernel within the main
+function](images/ch2-pgprof.png)
+
+In the chapters that follow, we will optimize the loops identified in this
+chapter as the hotspots within our example application. 

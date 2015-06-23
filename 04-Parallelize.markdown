@@ -259,11 +259,12 @@ private copy of the affected variable is generated for each loop iteration, but
 `reduction` goes a step further to reduce all of those private copies into one
 final result, which is returned from the region. For example, the maximum of
 all private copies of the variable may be required or perhaps the sum. A
-reduction may only be specified on a scalar variable and only the following
-operations may be performed (***TODO: grab list of operations***). The format
-of the reduction clause is as follows, where *operator* should be replaced with
-the operation of interest and *variable* should be replaced with the variable
-being reduced:
+reduction may only be specified on a scalar variable and only common, specified
+operations can be performed, such as `+`, `*`, `min`, `max`, and various
+bitwise operations (see the OpenACC specification for a complete lsit). The
+format of the reduction clause is as follows, where *operator* should be
+replaced with the operation of interest and *variable* should be replaced with
+the variable being reduced:
 
     reduction(operator:variable)
 
@@ -284,7 +285,29 @@ used within the routine. OpenACC's *levels of parallelism* will be discussed in 
 later section.
 
 ###C++ Class Functions###
-***FIXME***
+When operating on C++ classes, it's frequently necessary to call class
+functions from within parallel regions. The example below shows a C++ class
+`float3` that contains 3 floating point values and has a `set` function that is
+used to set the values of its `x`, `y`, and `z` members to that of another
+instance of `float3`. In order for this to work from within a parallel region,
+the `set` function is declared as an OpenACC routine using the `acc routine`
+directive. Since we know that it will be called by each iteration of a parallel
+loop, it's declared a `seq` (or *sequential*) routine. 
+
+~~~~ {.cpp .numberLines}
+    class float3 {
+       public:
+     	float x,y,z;
+    
+       #pragma acc routine seq
+       void set(const float3 *f) {
+    	x=f->x;
+    	y=f->y;
+    	z=f->z;
+       }
+    };
+~~~~
+
 
 Case Study - Parallelize
 ------------------------
@@ -527,11 +550,11 @@ At this point we have expressed all of the parallelism in the example code and
 the compiler has parallelized it for an accelerator device. Analyzing the
 performance of this code may yield surprising results on some accelerators,
 however. The results below demonstrate the performance of this code on 1 - 8
-CPU threads (***ADD CPU SPEC***)and an NVIDIA Tesla K40 GPU using both
-implementations above. The *y axis* for figure _ is execution time in seconds,
-so smaller is better. For the two OpenACC versions, the bar is divided by time
-transferring data between the host and device, time executing on the device,
-and other time.
+CPU threads on a modern CPU at the ime of publication and an NVIDIA Tesla K40
+GPU using both implementations above. The *y axis* for figure 3.1 is execution
+time in seconds, so smaller is better. For the two OpenACC versions, the bar is
+divided by time transferring data between the host and device, time executing
+on the device, and other time.
 
 ![Jacobi Iteration Performance - Step 1](images/jacobi_step1_graph.png)
 
@@ -542,16 +565,69 @@ dramaticaly worse than even the slowest CPU version. Further performance
 analysis is necessary to identify the source of this slowdown. A variety of
 tools are available for performing this analysis, but since this performance
 study was compiled with the PGI compiler, the PGI internal timers will give us
-a high-level analysis of the performance.  (***SHOULD I USE PGPROG INSTEAD?***)
+a high-level analysis of the performance.
+
+~~~~
+    $ export PGI_ACC_TIME=1
+    $ ./a.out
+    Jacobi relaxation Calculation: 4096 x 4096 mesh
+        0, 0.250000
+      100, 0.002397
+      200, 0.001204
+      300, 0.000804
+      400, 0.000603
+      500, 0.000483
+      600, 0.000403
+      700, 0.000345
+      800, 0.000302
+      900, 0.000269
+     total: 206.204458 s
+    
+    Accelerator Kernel Timing data
+    laplace2d.c
+      main  NVIDIA  devicenum=0
+        time(us): 4,622,652
+        55: data region reached 1000 times
+            55: data copyin transfers: 8000
+                 device time(us): total=109,504 max=75 min=8 avg=13
+            66: data copyout transfers: 8000
+                 device time(us): total=161,007 max=465 min=7 avg=20
+        55: compute region reached 1000 times
+            55: kernel launched 1000 times
+                grid: [4094]  block: [128]
+                 device time(us): total=2,335,051 max=2,405 min=2,256 avg=2,335
+                elapsed time(us): total=2,403,319 max=2,568 min=2,328 avg=2,403
+            55: reduction kernel launched 1000 times
+                grid: [1]  block: [256]
+                 device time(us): total=13,042 max=21 min=13 avg=13
+                elapsed time(us): total=42,028 max=85 min=39 avg=42
+        66: data region reached 1000 times
+            66: data copyin transfers: 8000
+                 device time(us): total=201,963 max=97 min=10 avg=25
+            75: data copyout transfers: 8000
+                 device time(us): total=157,935 max=72 min=6 avg=19
+        66: compute region reached 1000 times
+            66: kernel launched 1000 times
+                grid: [4094]  block: [128]
+                 device time(us): total=1,644,150 max=1,661 min=1,633 avg=1,644
+                elapsed time(us): total=1,715,129 max=2,253 min=1,684 avg=1,715
+~~~~ 
 
 Notice in the above output that the majority of the time in the parallel loop
-version is being spent
-doing memory copies. Since the test machine has two distinct memory spaces for
-the CPU and GPU memories, it's necessary to copy the data between the memory
-spaces. The next tool that may be helpful debugging the amount memory transfers
-is the NVIDIA Visual Profiler. The screenshot in figure _ shows NVIDIA Visual
-Profiler for ***2*** iterations of the convergence loop in the `kernels`
+version is being spent doing memory copies, as evident by the time spent in each `data copyin` and `data copyout` transfer. Since the test machine has two distinct memory spaces for the CPU and
+GPU memories, it's necessary to copy the data between the memory spaces. The
+next tool that may be helpful debugging the amount memory transfers is the
+NVIDIA Visual Profiler. The screenshot in figure 3.2 shows NVIDIA Visual
+Profiler for ***2*** iterations of the convergence loop in the `parallel loop`
 version of the code.
 
-***NVVP SCREENSHOT***
+![Screenshot of NVIDIA Visual Profiler on 2 steps of the Jacobi Iteration
+showing a high amount of data transfer compared to
+computation.](images/jacobi_step1_nvvp.png) 
 
+In this screenshot, the tool represents data transfers using the tan color
+boxes in the two *MemCpy* rows and the computation time in the green and purple
+boxes in the rows below *Compute*. It should be obvious from the timeline
+displayed that significantly more time is being spent copying data two and from
+the accelerator before and after each compute kernel than actually computing on
+the device. In the next chapter we will fix this inefficiency.
