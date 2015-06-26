@@ -368,7 +368,7 @@ the host. The modified code is found below.
 With this modification it's now possible for the computational part of one
 block to operate simultaneously as the data transfer of another. The developer
 should now experiment with varying block sizes to determine what the optimal
-value is on the architecture of interest. It's important to note however that
+value is on the architecture of interest. It's important to note, however, that
 on some architectures the cost of creating an asynchronous queue the first time
 its used can be quite expensive. In long-running applications, where the queues
 may be created once at the beginning of a many-hour run and reused throughout,
@@ -392,7 +392,7 @@ the test machine over the performance without pipelining.
 
 ![Visual profiler timelines for the original mandelbrot code (Top) and the
 pipelined code using 64 blocks over 2 asynchronous
-queues.](images/mandelbrot_timeline.png)
+queues (Bottom).](images/mandelbrot_timeline.png)
 
 Multi-device Programming
 ------------------------
