@@ -24,13 +24,13 @@ but also expanding the length of their SIMD operations. GPUs have grown to
 require a high degree of block and SIMT parallelism. It is clear that going
 forward all architectures will require a significant degree of parallelism in
 order to achieve high performance. Modern processors need not only a large
-ammount of parallelism, but frequently expose multiple levels of parallelism
+amount of parallelism, but frequently expose multiple levels of parallelism
 with varying degrees of coarseness. The next thing to notice is that all of
 these architectures have exposed hierarchies of memory. CPUs have the main
 system memory, typically DDR, and multiple layers of cache memory. GPUs have
 the main CPU memory, the main GPU memory, and various degrees of cache or
 scratchpad memory. Additionally on hybrid architectures, which include two or
-more different architectures, there exists machines where the two architectures
+more different architectures, there exist machines where the two architectures
 have completely separate memories, some with physically separate but logically
 the same memory, and some with fully shared memory.
 
@@ -141,7 +141,7 @@ host and GPU accelerator. The two devices may also have separate memory spaces
 or a single memory space. In the case that the two devices have different
 memories the OpenACC compiler and runtime will analyze the code and handle any
 accelerator memory management and the transfer of data between host and device
-memory. Figure _ shows a high level diagram of the OpenACC abstract
+memory. Figure 1.1 shows a high level diagram of the OpenACC abstract
 accelerator, but remember that the devices and memories may be physically the
 same on some architectures.
 

@@ -6,7 +6,7 @@ process of copying data from the host to the accelerator and back will be more
 costly than the computation itself. This is because it's difficult for a
 compler to determine when (or if) the data will be needed in the future, so it
 must be cautious and ensure that the data will be copied in case it's needed.
-To improve upon this, we'll explot the *data locality* of the application. Data
+To improve upon this, we'll exploit the *data locality* of the application. Data
 locality means that data used in device or host memory should remain local to
 that memory for as long as it's needed. This idea is sometimes referred to as
 optimizing data reuse or optimizing away unnecessary data copies between the
@@ -32,7 +32,7 @@ The next step in the acceleration process is to provide the compiler with
 additional information about data locality to maximize reuse of data on the
 device and minimize data transfers. It is after this step that most
 applications will observe the benefit of OpenACC acceleration. This step will
-be primarily beneficial on machine where the host and device have seperate
+be primarily beneficial on machine where the host and device have separate
 memories.
 
 Data Regions
@@ -84,7 +84,7 @@ enable data to be shared between both loop nests as follows.
 
 The `data` region in the above examples enables the `x` and `y` arrays to be
 reused between the two `parallel` regions. This will remove any data copies
-that happen between the two regions, but it still does not guarantee optimial
+that happen between the two regions, but it still does not guarantee optimal
 data movement. In order to provide the information necessary to perform optimal
 data movement, the programmer can add data clauses to the `data` region.
 
@@ -507,7 +507,7 @@ small kernel for setting the first and last elements. Small kernels generally
 do not run long enough to overcome the cost of a kernel launch on some
 offloading devices, such as GPUs. It's important that the data transfer saved
 by employing this technique is large enough to overcome the high cost of a
-kernel launch on some devices. Making both the `parallel loop` and the second
+kernel launch on some devices. Both the `parallel loop` and the second
 `parallel` region could be made asynchronous (discussed in a later chapter) to
 reduce the cost of the second kernel launch.
 
@@ -526,7 +526,7 @@ the `kernels` version. Given that the values for these arrays are not needed
 until after the answer has converged, let's add a data region around the
 convergence loop. Additionally, we'll need to specify how the arrays should be
 managed by this data region. Both the initial and final values for the `A`
-array are required, so that array will require a `copyin` data clause. The
+array are required, so that array will require a `copy` data clause. The
 results in the `Anew` array, however, are only used within this section of
 code, so a `create` clause will be used for it. The resulting code is shown
 below.
@@ -540,9 +540,10 @@ the code, so only the `parallel loop` version will be shown.*
         {
             error = 0.0;
     
-    #pragma acc parallel loop reduction(max:error)
+            #pragma acc parallel loop reduction(max:error)
             for( int j = 1; j < n-1; j++)
             {
+                #pragma acc loop reduction(max:error)
                 for( int i = 1; i < m-1; i++ )
                 {
                     Anew[j][i] = 0.25 * ( A[j][i+1] + A[j][i-1]
@@ -551,9 +552,10 @@ the code, so only the `parallel loop` version will be shown.*
                 }
             }
     
-    #pragma acc parallel loop
+           #pragma acc parallel loop
             for( int j = 1; j < n-1; j++)
             {
+                #pragma acc loop
                 for( int i = 1; i < m-1; i++ )
                 {
                     A[j][i] = Anew[j][i];
@@ -575,7 +577,7 @@ the code, so only the `parallel loop` version will be shown.*
         
       !$acc parallel loop reduction(max:error)
       do j=1,m-2
-        !$acc loop
+        !$acc loop reduction(max:error)
         do i=1,n-2
           A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
                                     Anew(i  ,j-1) + Anew(i  ,j+1) )
@@ -585,6 +587,7 @@ the code, so only the `parallel loop` version will be shown.*
 
       !$acc parallel loop
       do j=1,m-2
+        !$acc loop
         do i=1,n-2
           A(i,j) = Anew(i,j)
         end do
@@ -608,6 +611,9 @@ the OpenACC data region.](images/jacobi_step2_nvvp.png)
 
 Looking at the final performance of this code, we see that the time for the
 OpenACC code on a GPU is now much faster than even the best threaded CPU code.
+Although only the `parallel loop` version is shown in the performance graph,
+the `kernels` version performs equally well once the `data` region has been
+added.
 
 ![Runtime of Jacobi Iteration after adding OpenACC data
 region](images/jacobi_step2_graph.png)

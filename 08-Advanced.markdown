@@ -74,7 +74,7 @@ being copied by the `update` directive proceeds.
     !$acc wait
 ~~~~
 
-While this is useful, it would be even more useful to expose depenedencies into
+While this is useful, it would be even more useful to expose dependencies into
 these asynchronous operations and the associated waits such that independent
 operations could potentially be executed concurrently. Both `async` and `wait`
 have an optional argument for a non-negative, integer number that specifies a
@@ -133,7 +133,7 @@ how this is done.
     !$acc wait
 ~~~~
 
-The above code initializes the values contained in `a` and `b` using seperate
+The above code initializes the values contained in `a` and `b` using separate
 work queues so that they may potentially be done independently. The `wait(1)
 async(2)` ensures that work queue 2 does not proceed until queue 1 has
 completed. The vector addition is then able to be enqueued to the device
@@ -148,7 +148,7 @@ connected over a PCIe bus to a host CPU. Once the loops and data transfers
 within a routine have been tested, it is frequently beneficial to make each
 parallel region and update asynchrounous and then place a `wait` directive
 after the last accelerator directive. This allows the runtime to enqueue all of
-the work immeditely, which will reduce how often the accelerator and host must
+the work immediately, which will reduce how often the accelerator and host must
 synchronize and reduce the cost of launching work onto the accelerator. It is
 criticial when implementing this optimization that the developer not leave off
 the `wait` after the last accelerator directive, otherwise the code will be
@@ -198,7 +198,7 @@ which allows the output from each part to be copied while the next part is
 being computed. The figure below demonstrates an idealized pipeline where the
 computation and copies are equally sized, but this rarely occurs in real
 applications. By breaking the operation into two parts, the same amount of data
-is transfered, but all but the first and last transfers can be overlapped with
+is transferred, but all but the first and last transfers can be overlapped with
 computation. The number and size of these smaller chunks of work can be
 adjusted to find the value that provides the best performance.
 
@@ -319,7 +319,7 @@ the original version.
 The last step of this case study is to make the device operations asynchronous
 so that the independent copies and computation can happen simultaneously.
 To do this we will use asynchronous work queues to ensure that the computation
-and data transfer within a single block are in the same queue, but seperate
+and data transfer within a single block are in the same queue, but separate
 blocks land in different queues. The block number is a convenient asynchronous
 handle to use for this change. Of course, since we're now operating completely
 asynchronously, it's critical that we add a `wait` directive after the block loop
@@ -366,7 +366,7 @@ the host. The modified code is found below.
 ~~~~
 
 With this modification it's now possible for the computational part of one
-block to operate simulataneously as the data transfer of another. The developer
+block to operate simultaneously as the data transfer of another. The developer
 should now experiment with varying block sizes to determine what the optimal
 value is on the architecture of interest. It's important to note however that
 on some architectures the cost of creating an asynchronous queue the first time
@@ -386,9 +386,13 @@ on a given machine.
 
 Below we see a screenshot showing before and after profiles from applying these
 changes to the code on an NVIDIA GPU platform. Similar results should be
-possible on any acclerated platform.
+possible on any acclerated platform. Using 64 blocks and two asynchronous
+queues, as shown below, roughly a 2X performance improvement was observed on
+the test machine over the performance without pipelining.
 
-***generate screenshot from visual profiler***
+![Visual profiler timelines for the original mandelbrot code (Top) and the
+pipelined code using 64 blocks over 2 asynchronous
+queues.](images/mandelbrot_timeline.png)
 
 Multi-device Programming
 ------------------------
@@ -506,9 +510,9 @@ routine can be used to operate on a machine with multiple devices. In
 production codes the developer will likely want to partition the work such that
 only the parts of the array needed by a specific device are available there.
 Additionally, by using CPU threads it may be possible to issue work to the
-devices more quickly and improve overall performance. Figure _
+devices more quickly and improve overall performance. Figure 7.3
 shows a screenshot of the NVIDIA Visual Profiler showing the mandelbrot
-computation divided across two NVIDIA gpus.
+computation divided across two NVIDIA GPUs.
 
 ![NVIDIA Visual Profiler timeline for multi-device mandelbrot](images/multigpu_mandelbrot_timeline.png)
 

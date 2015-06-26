@@ -61,7 +61,7 @@ be quickly thrown away and the code returned to a known good state.
 #### Assess Application Performance ####
 Before one can begin to accelerate an application it is important to understand
 in which routines and loops an application is spending the bulk of its time and
-why. It is critical to understand the most timeconsuming parts of the
+why. It is critical to understand the most time-consuming parts of the
 application to maximize the benefit of acceleration. Amdahl's Law
 informs us that the speed-up achievable from running an application on a
 parallel accelerator will be limited by the remaining serial code. In other

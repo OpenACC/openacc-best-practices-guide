@@ -32,11 +32,11 @@ architectures.
 OpenACC's 3 Levels of Parallelism
 ---------------------------------
 OpenACC defines three levels of parallelism: *gang*, *worker*, and *vector*.
-Additionally exectution may be marked as being sequential (*seq*). Vector
+Additionally execution may be marked as being sequential (*seq*). Vector
 parallelism has the finest granularity, with an individual instruction
 operating on multiple pieces of data (much like *SIMD* parallelism on a modern
 CPU or *SIMT* parallelism on a modern GPU). Vector operations are performed
-with a particular *vector length*, indicating how many datums may being
+with a particular *vector length*, indicating how many data elements may be
 operated on with the same instruction. Gang parallelism is coarse-grained
 parallelism, where gangs work independently of each other and may not
 synchronize. Worker parallelism sits between vector and gang levels. A gang
@@ -134,7 +134,7 @@ for the loop.
 
 When using the `parallel` directive, the information is presented
 on the `parallel` directive itself, rather than on each individual loop, in the
-form of the `num_gangs`, `num_workers, and `vector\_length` clauses to the
+form of the `num_gangs`, `num_workers, and `vector_length` clauses to the
 `parallel` directive.
 
 ~~~~ {.c .numberLines}
@@ -155,15 +155,15 @@ form of the `num_gangs`, `num_workers, and `vector\_length` clauses to the
 ~~~~
 
 Since these mappings will vary between different accelerator, the `loop`
-directive accepts a `device\_type` clause, which will inform the compiler that
+directive accepts a `device_type` clause, which will inform the compiler that
 these clauses only apply to a particular device time. Clauses after a
-`device\_type` clause up until either the next `device\_type` or the end of the
+`device_type` clause up until either the next `device_type` or the end of the
 directive will apply only to the specified device. Clauses that appear before
-all `device\_type` clauses are considered default values, which will be used if
+all `device_type` clauses are considered default values, which will be used if
 they are not overridden by a later clause. For example, the code below
 specifies that a vector length of 128 should be used on devices of type
-`acc\_device\_nvidia` or a vector length of 256 should be used on devices of
-type `acc\device\radeon`. The compiler will choose a default vector length for
+`acc_device_nvidia` or a vector length of 256 should be used on devices of
+type `acc_device_radeon`. The compiler will choose a default vector length for
 all other device types.
 
 ~~~~ {.c .numberLines}
@@ -377,7 +377,7 @@ showing the relative speed-up of varying the vector length
 compared to the compiler-selected value.
 
 ![Relative speed-up from varying vector_length from the default value of
-256](images/spmv_speedup_vector_length.png)
+128](images/spmv_speedup_vector_length.png)
 
 Notice that the best performance comes from the smallest vector length. Again,
 this is because the number of non-zeros per row is very small, so a small
@@ -439,7 +439,7 @@ observed a 1.3X speed-up from decreasing the vector length and another 2.1X
 speed-up from varying the number of workers within each gang, resulting in an
 overall 2.9X performance improvement from the untuned OpenACC code.
 
-***Best Pratice:*** Although not shown in order to save space, it's generally
+***Best Practice:*** Although not shown in order to save space, it's generally
 best to use the `device_type` clause whenever specifying the sorts of
 optimizations demonstrated in this section, because these clauses will likely
 differ from accelerator to accelerator. By using the `device_type` clause it's

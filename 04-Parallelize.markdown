@@ -84,7 +84,7 @@ discussed in a later section.
 The Parallel Construct
 ----------------------
 The `parallel` construct identifies a region of code that will be parallelized
-across OpenACC *gangs*. By itself the a `parallel` region is of limited use,
+across OpenACC *gangs*. By itself a `parallel` region is of limited use,
 but when paired with the `loop` directive (discussed in more detail later) the
 compiler will generate a parallel version of the loop for the accelerator.
 These two directives can, and most often are, combined into a single `parallel
@@ -171,7 +171,7 @@ as *pointer aliasing*. If the compiler cannot know that two pointers are not
 aliased it will not be able to parallelize a loop that accesses those arrays. 
 
 ***Best Practice:*** C programmers should use the `restrict` keyword (or the
-`__restrict` dectorator in C++) whenever possible to inform the compiler that
+`__restrict` decorator in C++) whenever possible to inform the compiler that
 the pointers are not aliased, which will frequently give the compiler enough
 information to then parallelize loops that it would not have otherwise. In
 addition to the `restrict` keyword, declaring constant variables using the
@@ -261,7 +261,7 @@ final result, which is returned from the region. For example, the maximum of
 all private copies of the variable may be required or perhaps the sum. A
 reduction may only be specified on a scalar variable and only common, specified
 operations can be performed, such as `+`, `*`, `min`, `max`, and various
-bitwise operations (see the OpenACC specification for a complete lsit). The
+bitwise operations (see the OpenACC specification for a complete list). The
 format of the reduction clause is as follows, where *operator* should be
 replaced with the operation of interest and *variable* should be replaced with
 the variable being reduced:
@@ -329,7 +329,7 @@ that the outer of the two loops is safely parallel. Some compilers will
 additionally analyze the inner loop and determine that it is also parallel, but
 to be certain we will also add a `loop` directive around the inner loops. 
 
-There is one more subtlty to accelerating the loops in this example: we are
+There is one more subtlety to accelerating the loops in this example: we are
 attempting to calculate the maximum value for the variable `error`. As
 discussed above, this is considered a *reduction* since we are reducing from
 all possible values for `error` down to just the single maximum. This means
@@ -350,6 +350,7 @@ At this point the code looks like the examples below.
       #pragma acc parallel loop reduction(max:error) 
       for( int j = 1; j < n-1; j++)
       {
+        #pragma acc loop reduction(max:error)
         for( int i = 1; i < m-1; i++ )
         {
           A[j][i] = 0.25 * ( Anew[j][i+1] + Anew[j][i-1]
@@ -361,6 +362,7 @@ At this point the code looks like the examples below.
       #pragma acc parallel loop
       for( int j = 1; j < n-1; j++)
       {
+        #pragma acc loop
         for( int i = 1; i < m-1; i++ )
         {
           A[j][i] = Anew[j][i];
@@ -381,7 +383,7 @@ At this point the code looks like the examples below.
         
       !$acc parallel loop reduction(max:error)
       do j=1,m-2
-        !$acc loop
+        !$acc loop reduction(max:error)
         do i=1,n-2
           A(i,j) = 0.25_fp_kind * ( Anew(i+1,j  ) + Anew(i-1,j  ) + &
                                     Anew(i  ,j-1) + Anew(i  ,j+1) )
@@ -391,6 +393,7 @@ At this point the code looks like the examples below.
 
       !$acc parallel loop
       do j=1,m-2
+        !$acc loop
         do i=1,n-2
           A(i,j) = Anew(i,j)
         end do
@@ -401,26 +404,38 @@ At this point the code looks like the examples below.
     end do
 ~~~~    
 
+***Best Practice:*** Most OpenACC compilers will accept only the `parallel
+loop` directive on the `j` loops and detect for themselves that the `i` loop
+can also be parallelized without needing the `loop` directives on the `i`
+loops. By placing a `loop` directive on each loop that I know can be
+parallelized the programmer ensures that the compiler will understand that the
+loop is safe the parallelize. When used within a `parallel` region, the `loop`
+directive asserts that the loop iterations are independent of each other and
+are safe the parallelize and should be used to provide the compiler as much
+information about the loops as possible.
+
 Building the above code using the PGI compiler (version 15.5) produces the
-following compiler feedback (showing for C, but the Fortran output is similar).
+following compiler feedback (shown for C, but the Fortran output is similar).
 
     $ pgcc -acc -ta=tesla -Minfo=accel laplace2d-parallel.c
     main:
          56, Accelerator kernel generated
              56, Max reduction generated for error
              57, #pragma acc loop gang /* blockIdx.x */
-             59, #pragma acc loop vector(128) /* threadIdx.x */
+             60, #pragma acc loop vector(128) /* threadIdx.x */
+                 Max reduction generated for error
          56, Generating copyout(Anew[1:4094][1:4094])
              Generating copyin(A[:][:])
              Generating Tesla code
-         59, Loop is parallelizable
-         67, Accelerator kernel generated
-             68, #pragma acc loop gang /* blockIdx.x */
-             70, #pragma acc loop vector(128) /* threadIdx.x */
-         67, Generating copyin(Anew[1:4094][1:4094])
+         60, Loop is parallelizable
+         68, Accelerator kernel generated
+             69, #pragma acc loop gang /* blockIdx.x */
+             72, #pragma acc loop vector(128) /* threadIdx.x */
+         68, Generating copyin(Anew[1:4094][1:4094])
              Generating copyout(A[1:4094][1:4094])
              Generating Tesla code
-         70, Loop is parallelizable
+         72, Loop is parallelizable
+
 
 Analyzing the compiler feedback gives the programmer the ability to ensure that
 the compiler is producing the expected results and fix any problems if it's not.
@@ -430,8 +445,9 @@ and that the compiler automatically generated data movement, which will be
 discussed in more detail in the next chapter.
 
 Other clauses to the `loop` directive that may further benefit the performance
-of the resulting code will be discussed in a later chapter.  (***TODO: Link to
-later chapter when done.***)
+of the resulting code will be discussed in a later chapter.  
+
+<!---(***TODO: Link to later chapter when done.***)--->
 
 ### Kernels ###
 Using the `kernels` construct to accelerate the loops we've identified requires
@@ -498,7 +514,7 @@ computational loop nests results in the following code.
     end do
 ~~~~    
     
-The above code demostrates some of the power that the `kernels` construct
+The above code demonstrates some of the power that the `kernels` construct
 provides, since the compiler will analyze the code and identify both loop nests
 as parallel and it will automatically discover the reduction on the `error`
 variable without programmer intervention. An OpenACC compiler will likely
@@ -559,84 +575,47 @@ on the device, and other time.
 ![Jacobi Iteration Performance - Step 1](images/jacobi_step1_graph.png)
 
 Notice that the performance of this code improves as CPU threads are added to
-the calcuation and that the `kernels` version outperforms even the best CPU
-case by a large margin. The OpenACC `parallel loop` case, however, performs
-dramaticaly worse than even the slowest CPU version. Further performance
-analysis is necessary to identify the source of this slowdown. This analysis
-has already been applied to the graph above, which breaks down time spent
+the calcuation, but the OpenACC versions perform poorly compared to the CPU
+baseline. The OpenACC `kernels` version performs slightly better than the
+serial version, but the `parallel loop` case performs dramaticaly worse than
+even the slowest CPU version. Further performance analysis is necessary to
+identify the source of this slowdown. This analysis has already been applied to
+the graph above, which breaks down time spent
 computing the solution, copying data to and from the accelerator, and 
 miscelaneous time, which includes various overheads involved in scheduling data
 transfers and computation. 
 
 A variety of tools are available for performing this analysis, but since this
-case study was compiled with the PGI compiler, the PGI internal timers
-will give us a high-level analysis of the performance.
-
-~~~~
-    $ export PGI_ACC_TIME=1
-    $ ./a.out
-    Jacobi relaxation Calculation: 4096 x 4096 mesh
-        0, 0.250000
-      100, 0.002397
-      200, 0.001204
-      300, 0.000804
-      400, 0.000603
-      500, 0.000483
-      600, 0.000403
-      700, 0.000345
-      800, 0.000302
-      900, 0.000269
-     total: 206.204458 s
-    
-    Accelerator Kernel Timing data
-    laplace2d.c
-      main  NVIDIA  devicenum=0
-        time(us): 4,622,652
-        55: data region reached 1000 times
-            55: data copyin transfers: 8000
-                 device time(us): total=109,504 max=75 min=8 avg=13
-            66: data copyout transfers: 8000
-                 device time(us): total=161,007 max=465 min=7 avg=20
-        55: compute region reached 1000 times
-            55: kernel launched 1000 times
-                grid: [4094]  block: [128]
-                 device time(us): total=2,335,051 max=2,405 min=2,256 avg=2,335
-                elapsed time(us): total=2,403,319 max=2,568 min=2,328 avg=2,403
-            55: reduction kernel launched 1000 times
-                grid: [1]  block: [256]
-                 device time(us): total=13,042 max=21 min=13 avg=13
-                elapsed time(us): total=42,028 max=85 min=39 avg=42
-        66: data region reached 1000 times
-            66: data copyin transfers: 8000
-                 device time(us): total=201,963 max=97 min=10 avg=25
-            75: data copyout transfers: 8000
-                 device time(us): total=157,935 max=72 min=6 avg=19
-        66: compute region reached 1000 times
-            66: kernel launched 1000 times
-                grid: [4094]  block: [128]
-                 device time(us): total=1,644,150 max=1,661 min=1,633 avg=1,644
-                elapsed time(us): total=1,715,129 max=2,253 min=1,684 avg=1,715
-~~~~ 
-
-Notice in the above output that the majority of the time in the parallel loop
-version is being spent doing memory copies, as evident by the time spent in
-each `data copyin` and `data copyout` transfer. Since the test machine has two
-distinct memory spaces for the CPU and GPU memories, it's necessary to copy the
-data between the memory spaces. The next tool that may be helpful debugging the
-amount memory transfers is the NVIDIA Visual Profiler. The screenshot in figure
-3.2 shows NVIDIA Visual Profiler for ***2*** iterations of the convergence loop
-in the `parallel loop` version of the code.
+case study was compiled for an NVIDIA GPU, the NVIDIA Visual profiler will be
+used to understand the application peformance. The screenshot in figure 3.2
+shows NVIDIA Visual Profiler for ***2*** iterations of the convergence loop in
+the `parallel loop` version of the code.
 
 ![Screenshot of NVIDIA Visual Profiler on 2 steps of the Jacobi Iteration
 showing a high amount of data transfer compared to
 computation.](images/jacobi_step1_nvvp.png) 
 
-In this screenshot, the tool represents data transfers using the tan color
-boxes in the two *MemCpy* rows and the computation time in the green and purple
-boxes in the rows below *Compute*. It should be obvious from the timeline
-displayed that significantly more time is being spent copying data two and from
-the accelerator before and after each compute kernel than actually computing on
-the device. In the next chapter we will fix this inefficiency.
+Since the test machine has two distinct memory spaces, one for the CPU and one
+for the GPU, it's necessary to copy data between the two memories. In this
+screenshot, the tool represents data transfers using the tan colored boxes in the
+two *MemCpy* rows and the computation time in the green and purple boxes in the
+rows below *Compute*. It should be obvious from the timeline displayed that
+significantly more time is being spent copying data to and from the
+accelerator before and after each compute kernel than actually computing on the
+device. In fact, the majority of the time is spent either in memory copies or
+in overhead incurred by the runtime scheduling memory copeis. In the next
+chapter we will fix this inefficiency, but first, why does the `kernels`
+version outperform the `parallel loop` version? 
+
+When an OpenACC compiler parallelizes a region of code it must analyze the data
+that is needed within that region and copy it to and from the accelerator if
+necessary. This analysis is done at a per-region level and will typically
+default to copying arrays used on the accelerator both to and from the device
+at the beginning and end of the region respectively. Since the `parallel loop`
+version has two compute regions, as opposed to only one in the `kernels`
+version, data is copied back and forth between the two regions. As a result,
+the copy and overhead times are roughly twice that of the `kernels` region,
+although the compute kernel times are roughly the same. 
 
 Atomic Operations
 -----------------

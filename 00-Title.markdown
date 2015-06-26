@@ -1,4 +1,4 @@
 ---
 title: OpenACC Programming and Best Practices Guide
-date: May 23, 2015
+date: June 26, 2015
 ---
