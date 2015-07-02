@@ -14,3 +14,4 @@ core
 *.ccff
 ~$*
 *.html
+openacc-guide.tex

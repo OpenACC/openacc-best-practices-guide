@@ -5,6 +5,9 @@ openacc-guide.pdf:
 	#sed -i s/htbp/H/ openacc-guide.tex
 	#pandoc -s -o openacc-guide.pdf openacc-guide.tex --chapters --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc -V documentclass:book -V classoption:oneside
 
+openacc-guide.tex: 
+	pandoc -f markdown+implicit_figures -s -o openacc-guide.tex ??-*.markdown --filter pandoc-citeproc --highlight-style pygments --chapters
+
 openacc-guide.html: 
 	pandoc -f markdown+implicit_figures -s -o openacc-guide.html ??-*.markdown --chapters --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc -V documentclass:book -V classoption:oneside --highlight-style pygments
 
