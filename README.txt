@@ -7,6 +7,19 @@ The build.bat file may be used to generate a PDF once Pandoc and a LaTex
 package are installed or the command may be modified to generate on
 another platform.
 
+Docker Instructions
+-------------------
+A Dockerfile has been provided to generate a container with the necessary
+packages to build the guide.
+
+    $ docker build -t openacc-programming-guide
+    $ docker run --rm -v $PWD:/work openacc-programming-guide make
+
+Optionally use the `-u` option to docker run to prevent issues with the
+ownership of the resulting files. For instance `-u "$(id -u):$(id -g)"`
+on a Linux system will ensure the resulting files are owned by the current
+user.
+
 Windows Instructions
 --------------------
 On Windows it is necessary to install the pandoc package and 
