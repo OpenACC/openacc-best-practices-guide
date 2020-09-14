@@ -11,8 +11,7 @@ accelerated computing, although such experience will be helpful.
 Writing Portable Code
 ---------------------
 The current computing landscape is spotted with a variety of computing
-architectures: multi-core CPUs, GPUs, many-core devices, DSPs, and FPGAs, to
-name a few. It is now commonplace to find not just one, but several of these
+architectures: multi-core CPUs, GPUs, many-core devices, DSPs, ARM processors, and FPGAs, to name a few. It is now commonplace to find not just one, but several of these
 differing architectures within the same machine. Programmers must make
 portability of their code a forethought, otherwise they risk locking their
 application to a single architecture, which may limit the ability to run on
@@ -27,12 +26,7 @@ order to achieve high performance. Modern processors need not only a large
 amount of parallelism, but frequently expose multiple levels of parallelism
 with varying degrees of coarseness. The next thing to notice is that all of
 these architectures have exposed hierarchies of memory. CPUs have the main
-system memory, typically DDR, and multiple layers of cache memory. GPUs have
-the main CPU memory, the main GPU memory, and various degrees of cache or
-scratchpad memory. Additionally on hybrid architectures, which include two or
-more different architectures, there exist machines where the two architectures
-have completely separate memories, some with physically separate but logically
-the same memory, and some with fully shared memory.
+system memory, typically DDR, and multiple layers of cache memory. GPUs have the main CPU memory, the main GPU memory, and various degrees of cache or scratchpad memory. Additionally on hybrid architectures, which include two or more different architectures, there exist machines where the two architectures have completely separate memories, some with physically separate but logically the same memory, and some with fully shared memory.
 
 Because of these complexities, it's important that developers choose a
 programming model that balances the need for portability with the need for
@@ -60,9 +54,9 @@ limit the impact on overall application portability.
 ### Standard Programming Languages ###
 
 Many standard programming languages either have or are beginning to adopt
-features for parallel programming. For example, Fortran 2008 added support for
-`do concurrent`, which exposes the parallelism within that loop. Adoption of
-these language features is often slow, however, and many standard languages are
+features for parallel programming. For example, C++17 added support for
+`std::execution` which enables users to express parallelism with certian loop structures.
+Adoption of these language features is often slow, however, and many standard languages are
 only now beginning to discuss parallel programming features for future language
 releases. When these features become commonplace, they will provide high
 portability, since they are part of a standard language, and if well-designed
@@ -119,7 +113,7 @@ computing, programmers desire the ability to program using a familiar, high
 level programming model that provides both high performance and portability to
 a wide range of computing architectures. OpenACC emerged in 2011 as a
 programming model that uses high-level compiler directives to expose
-parallelism in the code and parallelizing compilers to build the code for a
+parallelism in the code and parallelize compilers to build the code for a
 variety of parallel accelerators. This document is intended as a best practices
 guide for accelerating an application using OpenACC to give both good
 performance and portability to other devices.
