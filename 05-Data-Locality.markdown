@@ -4,10 +4,10 @@ At the end of the previous chapter we saw that although we've moved the most
 compute intensive parts of the application to the accelerator, sometimes the
 process of copying data from the host to the accelerator and back will be more
 costly than the computation itself. This is because it's difficult for a
-compler to determine when (or if) the data will be needed in the future, so it
-must be cautious and ensure that the data will be copied in case it's needed.
-To improve upon this, we'll exploit the *data locality* of the application. Data
-locality means that data used in device or host memory should remain local to
+compiler to determine when (or if) the data will be needed in the
+future, so itmust be cautious and ensure that the data will be copied in case it's
+needed. To improve upon this, we'll exploit the *data locality* of the application.
+Data locality means that data used in device or host memory should remain local to
 that memory for as long as it's needed. This idea is sometimes referred to as
 optimizing data reuse or optimizing away unnecessary data copies between the
 host and device memories. However you think of it, providing the compiler with
@@ -24,9 +24,9 @@ copying data that may be required, so that the program will still produce
 correct results. A programmer will have knowledge of what data is really needed
 and when it will be needed. The programmer will also have knowledge of how data
 may be shared between two functions, something that is difficult for a compiler
-to determine. Even when does not immediately know how best to optimize data motion, 
-profiling tools may help the programmer identify when excess data movement occurs,
-as will be shown in the case study at the end of this chapter.
+to determine. Profiling tools can help the programmer identify 
+when excess data movement occurs, as will be shown in the case study at the end 
+of this chapter.
 
 The next step in the acceleration process is to provide the compiler with
 additional information about data locality to maximize reuse of data on the
@@ -158,7 +158,7 @@ As an example of array shaping, the code below modifies the previous example by
 adding shape information to each of the arrays.
 
 ~~~~ {.c .numberLines}
-    #pragma acc data pcreate(x[0:N]) pcopyout(y[0:N])
+    #pragma acc data create(x[0:N]) copyout(y[0:N])
     {
       #pragma acc parallel loop
         for (i=0; i<N; i++)
@@ -178,7 +178,7 @@ adding shape information to each of the arrays.
 ----
 
 ~~~~ {.fortran .numberLines}
-    !$acc data pcreate(x(1:N)) pcopyout(y(1:N))
+    !$acc data create(x(1:N)) copyout(y(1:N))
     !$acc parallel loop
     do i=1,N
       y(i) = 0
@@ -200,11 +200,11 @@ In this simple example above, the programmer knows that both `x` and `y` will
 be populated with data on the device, so neither will need to be copied to the
 device, but the results of `y` are significant, so it will need to be copied
 back to the host at the end of the calculation. The code below demonstrates
-using the `pcreate` and `pcopyout` directives to describe exactly this data
+using the `create` and `copyout` directives to describe exactly this data
 locality to the compiler.
 
 ~~~~ {.c .numberLines}
-    #pragma acc data pcreate(x) pcopyout(y)
+    #pragma acc data create(x) copyout(y)
     {
       #pragma acc parallel loop
         for (i=0; i<N; i++)
@@ -224,7 +224,7 @@ locality to the compiler.
 ----
 
 ~~~~ {.fortran .numberLines}
-    !$acc data pcreate(x) pcopyout(y)
+    !$acc data create(x) copyout(y)
     !$acc parallel loop
     do i=1,N
       y(i) = 0
@@ -606,8 +606,8 @@ this calculation. Using the Nvidia Visual Profiler again, we see that each
 data transfers now only occur at the beginning and end of the data region and
 that the time between each iterations is much less. 
 
-![NVIDIA Visual Profiler showing 2 iterations of the Jacobi solver after adding
-the OpenACC data region.](images/jacobi_step2_nvvp.png)
+![NVIDIA Nsight Systems showing a single iteration of the Jacobi solver after adding
+the OpenACC data region.](images/ch4_profile.png)
 
 Looking at the final performance of this code, we see that the time for the
 OpenACC code on a GPU is now much faster than even the best threaded CPU code.
