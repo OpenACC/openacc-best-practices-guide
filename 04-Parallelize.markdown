@@ -414,27 +414,25 @@ directive asserts that the loop iterations are independent of each other and
 are safe the parallelize and should be used to provide the compiler as much
 information about the loops as possible.
 
-Building the above code using the PGI compiler (version 15.5) produces the
+Building the above code using the PGI compiler (version 19.10) produces the
 following compiler feedback (shown for C, but the Fortran output is similar).
 
     $ pgcc -acc -ta=tesla -Minfo=accel laplace2d-parallel.c
     main:
-         56, Accelerator kernel generated
-             56, Max reduction generated for error
+         56, Generating Tesla code
              57, #pragma acc loop gang /* blockIdx.x */
-             60, #pragma acc loop vector(128) /* threadIdx.x */
-                 Max reduction generated for error
-         56, Generating copyout(Anew[1:4094][1:4094])
-             Generating copyin(A[:][:])
-             Generating Tesla code
-         60, Loop is parallelizable
-         68, Accelerator kernel generated
-             69, #pragma acc loop gang /* blockIdx.x */
-             72, #pragma acc loop vector(128) /* threadIdx.x */
-         68, Generating copyin(Anew[1:4094][1:4094])
-             Generating copyout(A[1:4094][1:4094])
-             Generating Tesla code
-         72, Loop is parallelizable
+                 Generating reduction(max:error)
+             59, #pragma acc loop vector(128) /* threadIdx.x */
+         56, Generating implicit copyin(A[:][:]) [if not already present]
+             Generating implicit copy(error) [if not already present]
+             Generating implicit copyout(Anew[1:4094][1:4094]) [if not already present]
+         59, Loop is parallelizable
+         67, Generating Tesla code
+             68, #pragma acc loop gang /* blockIdx.x */
+             70, #pragma acc loop vector(128) /* threadIdx.x */
+         67, Generating implicit copyin(Anew[1:4094][1:4094]) [if not already present]
+             Generating implicit copyout(A[1:4094][1:4094]) [if not already present]
+         70, Loop is parallelizable
 
 
 Analyzing the compiler feedback gives the programmer the ability to ensure that
@@ -531,21 +529,19 @@ between the two approaches.
 
     $ pgcc -acc -ta=tesla -Minfo=accel laplace2d-kernels.c
     main:
-         56, Generating copyout(Anew[1:4094][1:4094])
-             Generating copyin(A[:][:])
-             Generating copyout(A[1:4094][1:4094])
-             Generating Tesla code
+         56, Generating implicit copyin(A[:][:]) [if not already present]
+             Generating implicit copyout(Anew[1:4094][1:4094],A[1:4094][1:4094]) [if not already present]
          58, Loop is parallelizable
          60, Loop is parallelizable
-             Accelerator kernel generated
-             58, #pragma acc loop gang /* blockIdx.y */
-             60, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
-             64, Max reduction generated for error
+             Generating Tesla code
+             58, #pragma acc loop gang, vector(4) /* blockIdx.y threadIdx.y */
+             60, #pragma acc loop gang, vector(32) /* blockIdx.x threadIdx.x */
+             64, Generating implicit reduction(max:error)
          68, Loop is parallelizable
          70, Loop is parallelizable
-             Accelerator kernel generated
-             68, #pragma acc loop gang /* blockIdx.y */
-             70, #pragma acc loop gang, vector(128) /* blockIdx.x threadIdx.x */
+             Generating Tesla code
+             68, #pragma acc loop gang, vector(4) /* blockIdx.y threadIdx.y */
+             70, #pragma acc loop gang, vector(32) /* blockIdx.x threadIdx.x */
 
 The first thing to notice from the above output is that the compiler correctly
 identified all four loops as being parallelizable and generated kernels from
@@ -566,7 +562,7 @@ At this point we have expressed all of the parallelism in the example code and
 the compiler has parallelized it for an accelerator device. Analyzing the
 performance of this code may yield surprising results on some accelerators,
 however. The results below demonstrate the performance of this code on 1 - 8
-CPU threads on a modern CPU at the ime of publication and an NVIDIA Tesla K40
+CPU threads on a modern CPU at the time of publication and an NVIDIA Tesla K40
 GPU using both implementations above. The *y axis* for figure 3.1 is execution
 time in seconds, so smaller is better. For the two OpenACC versions, the bar is
 divided by time transferring data between the host and device, time executing
@@ -586,14 +582,14 @@ miscelaneous time, which includes various overheads involved in scheduling data
 transfers and computation. 
 
 A variety of tools are available for performing this analysis, but since this
-case study was compiled for an NVIDIA GPU, the NVIDIA Visual profiler will be
+case study was compiled for an NVIDIA GPU, NVIDIA Nsight Systems will be
 used to understand the application peformance. The screenshot in figure 3.2
-shows NVIDIA Visual Profiler for ***2*** iterations of the convergence loop in
+shows Nsight Systems profile for ***2*** iterations of the convergence loop in
 the `parallel loop` version of the code.
 
-![Screenshot of NVIDIA Visual Profiler on 2 steps of the Jacobi Iteration
+![Screenshot of NVIDIA Nsight Systems Profile on 2 steps of the Jacobi Iteration
 showing a high amount of data transfer compared to
-computation.](images/jacobi_step1_nvvp.png) 
+computation.](images/ch3_profile.png) 
 
 Since the test machine has two distinct memory spaces, one for the CPU and one
 for the GPU, it's necessary to copy data between the two memories. In this
