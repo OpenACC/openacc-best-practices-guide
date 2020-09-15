@@ -1,0 +1,17 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: pandoc/latex:latest
+    steps:
+      - checkout
+      - run:
+          name: Build PDF
+          command: -f markdown+implicit_figures -s -o openacc-guide.pdf ??-*.markdown --filter pandoc-citeproc --highlight-style pygments --top-level-division=chapter
+      - store_artifacts:
+          path: openacc-guide.pdf
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
