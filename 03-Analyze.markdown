@@ -7,7 +7,7 @@ performance analysis tool is outside of the scope of this document. The purpose
 of this section is to provide guidance on choosing important sections of code
 for acceleration, which is independent of the profiling tools available. 
 
-Throughout this guide, the NVIDIA Nsight Systems performance analysis tool which is provided with the CUDA toolkit, will be used for CPU profiling. When accelerator profiling is needed, the application will be run on an Nvidia GPU and the Nvidia Nsight Systems profiler will be again be used.
+Throughout this guide, the NVIDIA Nsight Systems performance analysis tool which is provided with the CUDA toolkit, will be used for CPU profiling. When accelerator profiling is needed, the application will be run on an NVIDIA GPU and the NVIDIA Nsight Systems profiler will be again be used.
 
 Baseline Profiling
 ------------------
@@ -69,7 +69,10 @@ Case Study - Analysis
 ---------------------
 To get a better understanding of the case study program we will use the
 NVIDIA NSight Systems command line interface that comes as a part of the Cuda Toolkit. First,
-it's necessary to build the executable. Remember to use the flags included in the example below to ensure that additional information about how the compiler optimized the program is displayed. The executable is built with the following command:
+it's necessary to build the executable. Remember to use the flags included in
+the example below to ensure that additional information about how the
+compiler optimized the program is displayed. The executable is built with the
+following command:
 
 ~~~~
     $ pgcc -fast -Minfo=all laplace2d.c
@@ -147,13 +150,21 @@ the NVIDIA Nsight Systems GUI
      total: 36.480533 s
 ~~~~
 
-Once the data has been collected, and the .qdrep report has been generated, it can be visualized using the Nsight Systems GUI. You must first copy the report to a machine that has graphical capabilities and download the Nsight Systems interface. Next, you must open the application and select your file via the file manager.
+Once the data has been collected, and the .qdrep report has been generated,
+it can be visualized using the Nsight Systems GUI. You must first copy the
+report to a machine that has graphical capabilities and download the Nsight
+Systems interface. Next, you must open the application and select your file
+via the file manager.
 
 ![Nsight Systems initial window in the GUI. You must use the toolbar at the top to find your target report file](images/ch2-nsight-open.png)
 
-When we open the report in Nsight Systems, we see that the vast majority of the time is spent in two
-routines: main and \_\_c\_mcopy8. A screenshot of the initial screen for Nsight systems is show in figure 2.1. Since the code for this case study is completely within the main function of the program, it's not surprising that
-nearly all of the time is spent in main, but in larger applications it's likely that the time will be spent in several other routines. 
+When we open the report in Nsight Systems, we see that the vast majority of
+the time is spent in two routines: main and \_\_c\_mcopy8. A screenshot of
+the initial screen for Nsight systems is show in figure 2.1. Since the code
+for this case study is completely within the main function of the program,
+it's not surprising that nearly all of the time is spent in main, but in
+larger applications it's likely that the time will be spent in several other
+routines.
 
 ![Nsight initial profile window showing 81% of runtime in main and 17% in a
 memory copy routine.](images/ch2-nsight-initial.png)
@@ -163,13 +174,13 @@ within main comes from the loop that calculates the next value for A. This is
 shown in figure 2.2. What is not obvious from the profiler output,
 however, is that the time spent in the memory copy routine shown in the initial
 screen is actually the second loop nest, which performs the array swap at the
-end of each iteration. The compiler output shows above (and is reiterated in
-PGProf) that the loop at line 68 was replaced by a memory copy, because doing
-so is more efficient than copying each element individually. So what the
-profiler is really showing us is that the major hotspots for our application
-are the loop nest that calculate `Anew` from `A` and the loop nest that copies
-from `Anew` to `A` for the next iteration, so we'll concentrate our efforts on
-these two loop nests.
+end of each iteration. The compiler output shows above that the loop at line
+68 was replaced by a memory copy, because doing so is more efficient than
+copying each element individually. So what the profiler is really showing us
+is that the major hotspots for our application are the loop nest that
+calculate `Anew` from `A` and the loop nest that copies from `Anew` to `A`
+for the next iteration, so we'll concentrate our efforts on these two loop
+nests.
 
 In the chapters that follow, we will optimize the loops identified in this
 chapter as the hotspots within our example application. 
