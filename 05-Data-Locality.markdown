@@ -5,7 +5,7 @@ compute intensive parts of the application to the accelerator, sometimes the
 process of copying data from the host to the accelerator and back will be more
 costly than the computation itself. This is because it's difficult for a
 compiler to determine when (or if) the data will be needed in the
-future, so itmust be cautious and ensure that the data will be copied in case it's
+future, so it must be cautious and ensure that the data will be copied in case it's
 needed. To improve upon this, we'll exploit the *data locality* of the application.
 Data locality means that data used in device or host memory should remain local to
 that memory for as long as it's needed. This idea is sometimes referred to as

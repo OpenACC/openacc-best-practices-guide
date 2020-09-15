@@ -54,8 +54,10 @@ limit the impact on overall application portability.
 ### Standard Programming Languages ###
 
 Many standard programming languages either have or are beginning to adopt
-features for parallel programming. For example, C++17 added support for
-`std::execution` which enables users to express parallelism with certian loop structures.
+features for parallel programming. For example, Fortran 2008 added support
+for `do concurrent`, which exposes the potenial parallelism with that loop,
+and C++17 added support for `std::execution` which enables users to express
+parallelism with certian loop structures.
 Adoption of these language features is often slow, however, and many standard languages are
 only now beginning to discuss parallel programming features for future language
 releases. When these features become commonplace, they will provide high
@@ -113,7 +115,7 @@ computing, programmers desire the ability to program using a familiar, high
 level programming model that provides both high performance and portability to
 a wide range of computing architectures. OpenACC emerged in 2011 as a
 programming model that uses high-level compiler directives to expose
-parallelism in the code and parallelize compilers to build the code for a
+parallelism in the code and parallelizing compilers to build the code for a
 variety of parallel accelerators. This document is intended as a best practices
 guide for accelerating an application using OpenACC to give both good
 performance and portability to other devices.
