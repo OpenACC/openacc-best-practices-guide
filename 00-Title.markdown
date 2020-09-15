@@ -1,6 +1,6 @@
 ---
 title: OpenACC Programming and Best Practices Guide
-date: June 26, 2015
+date: Unreleased
 toc: yes
 tocdepth: 2
 chapters: yes
