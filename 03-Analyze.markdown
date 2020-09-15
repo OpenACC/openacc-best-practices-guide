@@ -95,46 +95,6 @@ the NVIDIA Nsight Systems GUI
 
 ~~~~
     $ nsys profile ./a.out
-    **** collection configuration ****
-        force-overwrite = false
-        stop-on-exit = true
-        export_sqlite = false
-        stats = false
-        capture-range = none
-        stop-on-range-end = false
-        Beta: ftrace events:
-        ftrace-keep-user-config = false
-        trace-GPU-context-switch = false
-        delay = 0 seconds
-        duration = 0 seconds
-        kill = signal number 15
-        inherit-environment = true
-        show-output = true
-        trace-fork-before-exec = false
-        sample_cpu = true
-        backtrace_method = LBR
-        wait = all
-        trace_cublas = false
-        trace_cuda = true
-        trace_cudnn = false
-        trace_nvtx = true
-        trace_mpi = false
-        trace_openacc = false
-        trace_vulkan = false
-        trace_opengl = true
-        trace_osrt = true
-        osrt-threshold = 0 nanoseconds
-        cudabacktrace = false
-        cudabacktrace-threshold = 0 nanoseconds
-        profile_processes = tree
-        application command = ./a.out
-        application arguments = 
-        application working directory = openacc-best-practices-guide/examples/laplace/ch2
-        NVTX profiler range trigger = 
-        NVTX profiler domain trigger = 
-        environment variables:
-        Collecting data...
-        
     
     Jacobi relaxation Calculation: 4096 x 4096 mesh
         0, 0.250000
@@ -148,13 +108,21 @@ the NVIDIA Nsight Systems GUI
       800, 0.000302
       900, 0.000269
      total: 36.480533 s
+     Processing events...
+Capturing symbol files...
+Saving temporary "/tmp/nsys-report-2f5b-f32e-7dec-9af0.qdstrm" file to disk...
+Creating final output files...
+
+Processing [==============================================================100%]
+Saved report file to "/tmp/nsys-report-2f5b-f32e-7dec-9af0.qdrep"
+Report file moved to "/home/ubuntu/openacc-programming-guide/examples/laplace/ch2/report1.qdrep"
 ~~~~
 
 Once the data has been collected, and the .qdrep report has been generated,
 it can be visualized using the Nsight Systems GUI. You must first copy the
-report to a machine that has graphical capabilities and download the Nsight
-Systems interface. Next, you must open the application and select your file
-via the file manager.
+report (report1.qdrep in the example above) to a machine that has graphical
+capabilities and download the Nsight Systems interface. Next, you must open
+the application and select your file via the file manager.
 
 ![Nsight Systems initial window in the GUI. You must use the toolbar at the top to find your target report file](images/ch2-nsight-open.png)
 
