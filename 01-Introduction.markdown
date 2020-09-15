@@ -56,7 +56,7 @@ limit the impact on overall application portability.
 Many standard programming languages either have or are beginning to adopt
 features for parallel programming. For example, Fortran 2008 added support
 for `do concurrent`, which exposes the potenial parallelism with that loop,
-and C++17 added support for `std::execution` which enables users to express
+and C++17 added support for `std::execution`, which enables users to express
 parallelism with certian loop structures.
 Adoption of these language features is often slow, however, and many standard languages are
 only now beginning to discuss parallel programming features for future language
