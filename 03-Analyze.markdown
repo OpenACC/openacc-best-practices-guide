@@ -16,7 +16,7 @@ understand where time is currently being spent in the code. Routines and loops
 that take up a significant percentage of the runtime are frequently referred to
 as *hot spots* and will be the starting point for accelerating the application. 
 A variety of tools exist for generating application profiles, such as gprof,
-pgprof, Vampir, Nsight Systems and TAU. Selecting the specific tool that works 
+Vampir, Nsight Systems, and TAU. Selecting the specific tool that works 
 best for a given application is outside of the scope of this document, but regardless 
 of which tool or tools are used below are some important pieces of information
 that will help guide the next steps in parallelizing the application.
@@ -53,11 +53,11 @@ Additional Profiling
 --------------------
 Through the process of porting and optimizing an application with OpenACC it's
 necessary to gather additional profile data to guide the next steps in the
-process. Some profiling tools, such as pgprof and Vampir, support profiling on
-CPUs and GPUs, while other tools, such as gprof and NVIDIA Nsight Systems, may
+process. Some profiling tools, such as Nsight Systems and Vampir, support profiling on
+CPUs and GPUs, while other tools, such as gprof, may
 only support profiling on a particular platform. Additionally, some compilers
 build their own profiling into the application, such is the case with the PGI
-compiler, which offers the Common Compiler Feedback Format, 
+compiler, which supports setting the PGI\_ACC\_Time environment variable for 
 gathering runtime information about the application. When developing on
 offloading platforms, such as CPU + GPU platforms, it's generally important to
 use a profiling tool throughout the development process that can evaluate both
@@ -68,7 +68,7 @@ it is only available on NVIDIA platforms.
 Case Study - Analysis
 ---------------------
 To get a better understanding of the case study program we will use the
-NVIDIA NSight Systems command line interface that comes as a part of the Cuda Toolkit. First,
+NVIDIA NSight Systems command line interface that comes as a part of the CUDA Toolkit and NVIDIA HPC SDK. First,
 it's necessary to build the executable. Remember to use the flags included in
 the example below to ensure that additional information about how the
 compiler optimized the program is displayed. The executable is built with the
