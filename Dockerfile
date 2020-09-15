@@ -13,6 +13,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
                 texlive-latex-base           \
                 python-pygments make         \
                 texlive-latex-extra          \
+                ca-certificates              \
                 texlive-fonts-recommended && \
     rm -rf /var/lib/apt/lists/* 
 WORKDIR /work
