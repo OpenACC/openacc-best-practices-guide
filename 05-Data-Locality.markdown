@@ -602,7 +602,7 @@ the code, so only the `parallel loop` version will be shown.*
 With this change, only the value computed for the maximum error, which is
 required by the convergence loop, is copied from the device every iteration.
 The `A` and `Anew` arrays will remain local to the device through the extent of
-this calculation. Using the Nvidia Visual Profiler again, we see that each
+this calculation. Using the NVIDIA Visual Profiler again, we see that each
 data transfers now only occur at the beginning and end of the data region and
 that the time between each iterations is much less. 
 

@@ -80,11 +80,13 @@ operations could potentially be executed concurrently. Both `async` and `wait`
 have an optional argument for a non-negative, integer number that specifies a
 queue number for that operation. All operations placed in the same queue will
 operate in-order, but operations place in different queues may operate in any
-order. These work queues are unique per-device, so two devices will have
-distinct queues with the same number. If a `wait` is encountered without an
-argument, it will wait on all previously enqueued work on that device. The case
-study below will demonstrate how to use different work queues to achieve
-overlapping of computation and data transfers.
+order with respect to each other. Operations in different queues mayi, but
+are not guaranteed to, operate in parallel. These work queues are unique
+per-device, so two devices will have distinct queues with the same number. If
+a `wait` is encountered without an argument, it will wait on all previously
+enqueued work on that device. The case study below will demonstrate how to
+use different work queues to achieve overlapping of computation and data
+transfers.
 
 In addition to being able to place operations in separate queues, it'd be
 useful to be able to join these queues together at a point where results from
@@ -429,8 +431,8 @@ As a example of multi-device programming, it's possible to further extend the
 mandelbrot example used previously to send different blocks of work to
 different accelerators. In order to make this work, it's necessary to ensure
 that device copies of the data are created on each device. We will do this by
-replacing the structured `data` region in the code with an unstructured `enter
-data` directive for eac device, using the `acc_set_device_num()` function to
+replacing the structured `data` region in the code with an unstructured `enter data` 
+directive for each device, using the `acc_set_device_num()` function to
 specify the device for each `enter data`. For simplicity, we will allocate the
 full image array on each device, although only a part of the array is actually
 needed. When the memory requirements of the application is large, it will be

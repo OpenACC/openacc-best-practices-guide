@@ -284,7 +284,7 @@ to a function definition informing the compiler of the level of parallelism
 used within the routine. OpenACC's *levels of parallelism* will be discussed in a
 later section.
 
-###C++ Class Functions###
+### C++ Class Functions ###
 When operating on C++ classes, it's frequently necessary to call class
 functions from within parallel regions. The example below shows a C++ class
 `float3` that contains 3 floating point values and has a `set` function that is
