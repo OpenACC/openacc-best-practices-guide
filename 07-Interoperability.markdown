@@ -9,23 +9,28 @@ already be available. Developers don't need to decide at the begining of a
 project between OpenACC *or* something else, they can choose to use OpenACC *and*
 other technologies.
 
+***NOTE:*** The examples used in this chapter can be found online at
+https://github.com/jefflarkin/openacc-interoperability
+
 The Host Data Region
 --------------------
 The first method for interoperating between OpenACC and some other code is by
 managing all data using OpenACC, but calling into a function that requires
 device data. For the purpose of example the `cublasSaxpy` routine will be used
 in place of writing a *saxpy* routine, as was shown in an earlier chapter. This
-routine is freely provided by Nvidia for their hardware in the CUBLAS library.
+routine is freely provided by NVIDIA for their hardware in the CUBLAS library.
 Most other vendors provide their own, tuned library.
 
 The `host_data` region gives the programmer a way to expose the device address
 of a given array to the host for passing into a function. This data must have
-already been moved to the device previously. The `host_data` region accepts
-only the `use_device` clause, which specifies which device variables should be
-exposed to the host. In the example below, the arrays `x` and `y` are placed on
-the device via a `data` region and then initialized in an OpenACC
-loop. These arrays are then passed to the `cublasSaxpy` function as device
-pointers using the `host_data` region. 
+already been moved to the device previously. The name of this construct often 
+confuses new users, but it can be thought of as a reverse `data` region, since 
+it takes data on the `device` and exposes it to the `host`. The `host_data`
+region accepts only the `use_device` clause, which specifies which device
+variables should be exposed to the host. In the example below, the arrays `x`
+and `y` are placed on the device via a `data` region and then initialized in
+an OpenACC loop. These arrays are then passed to the `cublasSaxpy` function
+as device pointers using the `host_data` region.
 
 ~~~~ {.c .numberLines}
     #pragma acc data create(x[0:n]) copyout(y[0:n])
@@ -46,15 +51,31 @@ pointers using the `host_data` region.
     }
 ~~~~
 
+---
+
+~~~~ {.fortran .numberLines}
+    !$acc data create(x,y)
+    !$acc kernels
+    X(:) = 1.0
+    Y(:) = 0.0
+    !$acc end kernels
+
+    !$acc host_data use_device(x,y)
+    call cublassaxpy(N, 2.0, x, 1, y, 1)
+    !$acc end host_data
+    !$acc update self(y)
+    !$acc end data
+~~~~
+
 The call to `cublasSaxpy` can be changed to any function that expects device
 memory as parameter.
 
 Using Device Pointers
 ---------------------
 Because there is already a large ecosystem of accelerated applications using
-languages such as CUDA or OpenCL it may also be necessary to add an OpenACC
+languages such as CUDA or OpenCL, it may also be necessary to add an OpenACC
 region to an existing accelerated application. In this case the arrays may be
-managed outside of OpenACC and already exist on the device. In this case
+managed outside of OpenACC and already exist on the device. For this case
 OpenACC provides the `deviceptr` data clause, which may be used where any data
 clause may appear. This clause informs the compiler that the variables
 specified are already device on the device and no other action needs to be
@@ -103,6 +124,21 @@ device and then uses that array within an OpenACC region.
     }
 ~~~~
 
+---
+
+~~~~ {.fortran .numberLines}
+    module saxpy_mod
+      contains
+      subroutine saxpy(n, a, x, y)
+        integer :: n
+        real    :: a, x(:), y(:)
+        !$acc parallel deviceptr(x,y)
+        y(:) = y(:) + a * x(:)
+        !$acc end parallel
+      end subroutine
+    end module
+~~~~
+
 Notice that in the `set` and `saxpy` routines, where the OpenACC compute
 regions are found, each compute region is informed that the pointers being
 passed in are already device pointers by using the `deviceptr` keyword. This
@@ -136,7 +172,7 @@ with the native runtime of each platform. Developers should refer to the
 OpenACC specification and their compiler's documentation for a full list of
 supported features.
 
-###Asynchronous Queues and CUDA Streams (NVIDIA)
+### Asynchronous Queues and CUDA Streams (NVIDIA)
 As demonstrated in the next chapter, asynchronous work queues are frequently an
 important way to deal with the cost of PCIe data transfers on devices with
 distinct host and device memory. In the NVIDIA CUDA programming model
@@ -155,7 +191,7 @@ With these two functions it's possible to place both OpenACC operations and
 CUDA operations into the same underlying CUDA stream so that they will execute
 in the appropriate order.
 
-###CUDA Managed Memory (NVIDIA)
+### CUDA Managed Memory (NVIDIA)
 NVIDIA added support for *CUDA Managed Memory*, which provides a single pointer
 to memory regardless of whether it is accessed from the host or device, in CUDA
 6.0. In many ways managed memory is similar to OpenACC memory management, in
@@ -169,7 +205,11 @@ program the developer can simply declare pointers to managed memory as device
 pointers using the `deviceptr` clause so that the OpenACC runtime will not
 attempt to create a separate device allocation for the pointers. 
 
-###Using CUDA Device Kernels (NVIDIA)
+It is also worth noting that the NVIDIA HPC compiler (formerly PGI compiler)
+has direct support for using CUDA Managed Memory by way of a compiler option.
+See the compiler documentation for more details.
+
+### Using CUDA Device Kernels (NVIDIA)
 The `host_data` directive is useful for passing device memory to host-callable
 CUDA kernels. In cases where it's necessary to call a device kernel (CUDA
 `__device__` function) from within an OpenACC parallel region it's possible to
