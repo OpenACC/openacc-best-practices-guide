@@ -56,15 +56,84 @@ other architectures.
 
 ![OpenACC's Three Levels of Parallelism](images/levels_of_parallelism.png)
 
+### Understanding OpenACC's Three Levels of Parallelism
+
+The terms _gang_, _worker_, and _vector_ are foreign to most programmers, so
+the meanings of these three levels of parallelism is often lost on new
+OpenACC programmers. Here's a practical example to help understand these
+three levels. Imagine that you need to paint your apartment. One person with
+a roller and bucket of paint can be reasonably expected to paint a small
+apartment in a few hours, maybe a day. For a small apartment, one painter is
+probably enough to complete the job, but what about if I need to paint
+every apartment in a large, multi-story building. In that case, it's a pretty
+daunting task for one person to complete. There's a few tricks this painter
+may try in order to work more quickly. One option is to work faster, moving
+the roller across the wall as fast that their arm can manage. There's a
+practical limit, however, to how fast a human being can actually use a paint
+roller. Another option is to use a larger paint roller. Perhaps our painter
+started with a 4 inch paint roller, so if they upgraded to an 8 inch roller,
+they can cover twice as much wall space in the same amount of time. Why stop
+there? Let's buy a 32 inch pain roller to over another 4 times as much wall
+per stroke! Now we're going to start to run into different problems. For
+instance, the painter's arm probably can't move as fast with a 32 inch roller
+as an 8 inch, so there's no guarantee that this is actually faster.
+Futhermore, wider rollers may result in awkward times when the painter has to
+paint over a place they've already painted just so that the roller fits or
+the wider roller may take more time to fill with paint. In either case,
+there's a clear limit to how fast a single painter can get the job done, so
+let's invite more painters.
+
+Now assume I have 4 painters working on the job. If given independent areas
+to paint, the job should get gone nearly 4 times faster, but at the cost of
+getting 4 times as many rollers, paint pans, and cans of paint. This is
+probably a small price to pay to get the job done nearly 4 times faster.
+Large jobs require large crews, however, so let's increase the number of
+painters again to 16. If each painter can work independently then the time it
+takes to complete the painting will probably go down by another 4 times, but
+now there may be some other inefficencies. For instance, it's probably
+cheaper to buy large buckets of the paint, rather than small paint cans, so
+we'll store those buckets in a central location where everyone can access
+them. Now if a painter needs to refill their pan, they have to walk to get
+their paint, which takes away from the time their painting. Here's an idea,
+let's organize our 16 painters into 4 groups of 4 painters, each of which has
+their own bucket to share. Now so long as the painters within each crew is
+working on jobs near the rest of the crew, the walk to get more paint is much
+shorter, but the crews are still free to work completely independently of
+each other.
+
+In this analogy, there's 3 levels of parallelism, just like OpenACC. The
+finest-grained level may not be completely obvious, but it's the size of the
+roller. The width of the roller dictates how much wall the painter can paint
+with each stroke. Wider rollers mean more wall per stroke, up to some limit.
+Next there are parallel painters within each crew. These painters can work
+mostly independently of each other, but occaisionally need to access their
+shared paint bucket or coordinate the next, near-by piece of work to do.
+Finally, there's our crews, which can work completely independently of each
+other and might even work at different times (think, day shift and night
+shift), representing the coarsest-grained parallelism in our hierarchy.
+
+In OpenACC _gangs_ are like the work crews, they are completely independent
+of each other and may operate in parallel or even at different times.
+_Workers_ are the individual painters, they can operate on their own but may
+also share resources with other _workers_ in the same _gang_. Finally the
+paint roller represents the _vector_ where the width of the roller represents
+the _vector length_. _Workers_ perform the same instruction on multiple
+elements of data using _vector_ operations. So, _gangs_ consist of at least
+one _worker_, which operates on a _vector_ of data.
+
 Mapping Parallelism to the Hardware
 -----------------------------------
 With some understanding of how the underlying accelerator hardware works it's
 possible to inform that compiler how it should map the loop iterations into
 parallelism on the hardware. It's worth restating that the more detail the
 compiler is given about how to map the parallelism onto a particular
-accelerator the less performance portable the code will be. 
+accelerator the less performance portable the code will be. For instance, 
+setting a fixed vector length may enhance performance on one processor and
+hinder performance on another or fixing the number of gangs used to execute on
+a loop may result in limiting the performance on processors with a larger 
+degree of parallelism.
 
-As discussed earlier in this guide the `loop` directive is intended to give the
+As discussed earlier in this guide, the `loop` directive is intended to give the
 compiler additional information about the next loop in the code. In addition to
 the clauses shown before, which were intended to ensure correctness, the
 clauses below inform the compiler which level of parallelism should be used to
@@ -134,7 +203,7 @@ for the loop.
 
 When using the `parallel` directive, the information is presented
 on the `parallel` directive itself, rather than on each individual loop, in the
-form of the `num_gangs`, `num_workers, and `vector_length` clauses to the
+form of the `num_gangs`, `num_workers`, and `vector_length` clauses to the
 `parallel` directive.
 
 ~~~~ {.c .numberLines}
@@ -156,7 +225,7 @@ form of the `num_gangs`, `num_workers, and `vector_length` clauses to the
 
 Since these mappings will vary between different accelerator, the `loop`
 directive accepts a `device_type` clause, which will inform the compiler that
-these clauses only apply to a particular device time. Clauses after a
+these clauses only apply to a particular device type. Clauses after a
 `device_type` clause up until either the next `device_type` or the end of the
 directive will apply only to the specified device. Clauses that appear before
 all `device_type` clauses are considered default values, which will be used if
@@ -188,8 +257,9 @@ this can result in improved performance. Additionally, if a loop lacked
 sufficient parallelism for the hardware by itself, collapsing it with another
 loop multiplies the available parallelism. This is especially beneficial on
 vector loops, since some hardware types will require longer vector lengths to
-achieve high performance than others. The code below demonstrates how to use
-the collapse directive.
+achieve high performance than others. Collapsing gang loops may also be beneficial
+if it allows for generating a greater number of gangs for highly-parallel processors.
+The code below demonstrates how to use the collapse directive.
 
 ~~~~ {.fortran .numberLines}    
     ! $acc parallel loop gang collapse (2)
@@ -214,7 +284,7 @@ the collapse directive.
 The above code is an excerpt from a real application where collapsing loops
 extended the parallelism available to be exploited. On line 1, the two
 outermost loops are collapsed together to make it possible to generate *gangs*
-across the iterations of both loops, thus making the total number of gangs
+across the iterations of both loops, thus making the possible number of gangs
 `nelemd` x `qsize` rather than just `nelemd`. The collapse at line 4 collapses
 together 3 small loops to increase the possible *vector length*, as none of the
 loops iterate for enough trips to create a reasonable vector length on the
@@ -231,8 +301,14 @@ the routine would be called from each loop iteration, therefore requiring a
 parallelism that must be mapped to the device. In these cases, the `routine`
 directive may have a `gang`, `worker`, or `vector` clause instead of `seq` to
 inform the compiler that the routine will contain the specified level of
-parallelism. When the compiler then encounters the call site of the affected
-routine, it will then know how it can parallelize the code to use the routine.
+parallelism. This can be thought of as _reserving_ a particular level of 
+parallelism for the loops in that routine. This is so that when the compiler
+then encounters the call site of the affected routine, it will then know how
+it can parallelize the code to use the routine. It's important to note that 
+if an `acc routine` calls another routine, that routine must also have an
+`acc routine` directive. At this time the OpenACC specification does not
+allow for specifying multiple possible levels of parallelism on a single
+routine.
 
 Case Study - Optimize Loops
 ---------------------------
