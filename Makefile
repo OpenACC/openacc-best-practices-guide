@@ -16,6 +16,16 @@ openacc-guide.html: ${MDFILES}
 openacc-guide.doc: ${MDFILES} ${IMGFILES}
 	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide.doc ??-*.markdown --top-level-division=chapter --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc
 
+openacc-guide.rst: ${MDFILES} ${IMGFILES}
+	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide.rst ??-*.markdown --top-level-division=chapter --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc
+
+readthedocs: openacc-guide.rst
+	#${PANDOC} -f markdown+implicit_figures -s -o index.rst ??-*.markdown --top-level-division=chapter --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc
+	-mkdir -f _build
+	sphinx-build -c sphinx . _build/
+	#-rm -f index.rst
+
+
 outline.pdf: outline.markdown
 	${PANDOC} outline.markdown -o outline.pdf -V geometry:margin=1in
 
