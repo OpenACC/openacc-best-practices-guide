@@ -17,13 +17,16 @@ openacc-guide.doc: ${MDFILES} ${IMGFILES}
 	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide.doc ??-*.markdown --top-level-division=chapter --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc
 
 openacc-guide.rst: ${MDFILES} ${IMGFILES}
-	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide.rst ??-*.markdown --top-level-division=chapter --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc
+	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide.rst ??-*.markdown --top-level-division=chapter --toc --toc-depth=2 --filter pandoc-citeproc --wrap=none
 
 readthedocs: openacc-guide.rst
-	#${PANDOC} -f markdown+implicit_figures -s -o index.rst ??-*.markdown --top-level-division=chapter --toc --toc-depth=2 -V geometry:margin=1in --filter pandoc-citeproc
-	-mkdir -f _build
+	-mkdir _build
 	sphinx-build -c sphinx . _build/
-	#-rm -f index.rst
+	mv _build/openacc-guide.html _build/index.html
+
+#readthedocs: ${MDFILES} ${IMGFILES}
+#	-mkdir -f _build
+#	sphinx-build -c sphinx . _build/
 
 
 outline.pdf: outline.markdown
@@ -32,4 +35,4 @@ outline.pdf: outline.markdown
 all: openacc-guide.pdf 
 
 clean:
-	rm -f outline.pdf openacc-guide.pdf openacc-guide.doc openacc-guide.tex openacc-guide.html outline.pdf
+	-rm -rf outline.pdf openacc-guide.pdf openacc-guide.doc openacc-guide.tex openacc-guide.html openacc-guide.rst outline.pdf _build

@@ -392,9 +392,7 @@ possible on any acclerated platform. Using 64 blocks and two asynchronous
 queues, as shown below, roughly a 2X performance improvement was observed on
 the test machine over the performance without pipelining.
 
-![Visual profiler timelines for the original mandelbrot code (Top) and the
-pipelined code using 64 blocks over 2 asynchronous
-queues (Bottom).](images/mandelbrot_timeline.png)
+![Visual profiler timelines for the original mandelbrot code (Top) and the pipelined code using 64 blocks over 2 asynchronous queues (Bottom).](images/mandelbrot_timeline.png)
 
 Multi-device Programming
 ------------------------

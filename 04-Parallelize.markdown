@@ -587,9 +587,7 @@ used to understand the application peformance. The screenshot in figure 3.2
 shows Nsight Systems profile for ***2*** iterations of the convergence loop in
 the `parallel loop` version of the code.
 
-![Screenshot of NVIDIA Nsight Systems Profile on 2 steps of the Jacobi Iteration
-showing a high amount of data transfer compared to
-computation.](images/ch3_profile.png) 
+![Screenshot of NVIDIA Nsight Systems Profile on 2 steps of the Jacobi Iteration showing a high amount of data transfer compared to computation.](images/ch3_profile.png) 
 
 Since the test machine has two distinct memory spaces, one for the CPU and one
 for the GPU, it's necessary to copy data between the two memories. In this
