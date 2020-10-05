@@ -1,6 +1,6 @@
 Optimize Loops
 ==============
-Once data locality has been expressed developers may wish to further tune the
+Once data locality has been expressed, developers may wish to further tune the
 code for the hardware of interest. It's important to understand that the more
 loops are tuned for a particular type of hardware the less performance portable
 the code becomes to other architecures. If you're generally running on one
@@ -8,12 +8,12 @@ particular accelerator, however, there may be some gains to be had by tuning
 how the loops are mapped to the underlying hardware. 
 
 It's tempting to begin tuning the loops before all of the data locality has
-been expressed in the code. Because PCIe copies are frequently the limiter to
+been expressed in the code. However, because data copies are frequently the limiter to
 application performance on the current generation of accelerators the
 performance impact of tuning a particular loop may be too difficult to measure
 until data locality has been optimized. For this reason the best practice is to
 wait to optimize particular loops until after all of the data locality has been
-expressed in the code, reducing the PCIe transfer time to a minimum.
+expressed in the code, reducing the data transfer time to a minimum.
 
 Efficient Loop Ordering
 -----------------------
@@ -73,7 +73,7 @@ practical limit, however, to how fast a human being can actually use a paint
 roller. Another option is to use a larger paint roller. Perhaps our painter
 started with a 4 inch paint roller, so if they upgraded to an 8 inch roller,
 they can cover twice as much wall space in the same amount of time. Why stop
-there? Let's buy a 32 inch pain roller to over another 4 times as much wall
+there? Let's buy a 32 inch paint roller to cover even more wall
 per stroke! Now we're going to start to run into different problems. For
 instance, the painter's arm probably can't move as fast with a 32 inch roller
 as an 8 inch, so there's no guarantee that this is actually faster.
@@ -94,7 +94,7 @@ now there may be some other inefficencies. For instance, it's probably
 cheaper to buy large buckets of the paint, rather than small paint cans, so
 we'll store those buckets in a central location where everyone can access
 them. Now if a painter needs to refill their pan, they have to walk to get
-their paint, which takes away from the time their painting. Here's an idea,
+their paint, which takes away from the time they're painting. Here's an idea,
 let's organize our 16 painters into 4 groups of 4 painters, each of which has
 their own bucket to share. Now so long as the painters within each crew is
 working on jobs near the rest of the crew, the walk to get more paint is much
@@ -261,6 +261,28 @@ achieve high performance than others. Collapsing gang loops may also be benefici
 if it allows for generating a greater number of gangs for highly-parallel processors.
 The code below demonstrates how to use the collapse directive.
 
+~~~~ {.c .numberLines}
+    #pragma acc parallel loop gang collapse(2)
+    for(ie = 0; ie < nelemd; ie++) {
+      for(q = 0; q < qsize; q++) {
+        #pragma acc loop vector collapse(3)
+        for(k = 0; k < nlev; k++) {
+          for(j = 0; j < np; j++) {
+            for(i = 0; i < np; i++) {
+              qtmp = elem[ie].state.qdp[i][j][k][q][n0_qdp];
+              vs1tmp = vstar[i][j][k][0][ie] * elem[ie].metdet[i][j] * qtmp;
+              vs2tmp = vstar[i][j][k][1][ie] * elem[ie].metdet[i]]j] * qtmp;
+              gv[i][j][k][0] = (dinv[i][j][0][0][ie] * vs1tmp + dinv[i][j][0][1][ie] * vs2tmp);
+              gv[i][j][k][1] = (dinv[i][j][1][0][ie] * vs1tmp + dinv[i][j][1][1][ie] * vs2tmp);
+            }
+          }
+        }
+      }
+    }
+~~~~
+
+---
+
 ~~~~ {.fortran .numberLines}    
     ! $acc parallel loop gang collapse (2)
     do ie = 1 , nelemd
@@ -376,26 +398,24 @@ achieving high performance.
 
 ***NOTE: Because this case study features optimization techniques, it is
 necessary to perform optimizations that may be beneficial on one hardware, but
-not on others. This case study was performed using the PGI 2015 compiler on an
-NVIDIA Tesla K40 GPU. These same techniques may apply on other architectures,
+not on others. This case study was performed using the PGI 2020 compiler on an
+NVIDIA Volta V100 GPU. These same techniques may apply on other architectures,
 particularly those similar to NVIDIA GPUs, but it will be necessary to make
 certain optimization decisions based on the particular accelerator in use.***
 
-In examining the compiler feedback from the code shown above, I know that the
+In examining the compiler feedback from the code shown below, I know that the
 compiler has chosen to use a vector length of 256 on the innermost loop. I
 could have also obtained this information from a runtime profile of the
 application. 
 
 ~~~~
     matvec(const matrix &, const vector &, const vector &):
-          7, include "matrix_functions.h"
-              12, Generating present(row_offsets[:],cols[:],Acoefs[:],xcoefs[:],ycoefs[:])
-                  Accelerator kernel generated
-                  15, #pragma acc loop gang /* blockIdx.x */
-                  20, #pragma acc loop vector(256) /* threadIdx.x */
-                      Sum reduction generated for sum
-              12, Generating Tesla code
-              20, Loop is parallelizable
+          3, Generating Tesla code
+              4, #pragma acc loop gang /* blockIdx.x */
+              9, #pragma acc loop vector(128) /* threadIdx.x */
+                 Generating reduction(+:sum)
+          3, Generating present(ycoefs[:],xcoefs[:],row_offsets[:],Acoefs[:],cols[:])
+          9, Loop is parallelizable
 ~~~~
 
 Based on my knowledge of the matrix, I know that this is
@@ -522,5 +542,5 @@ differ from accelerator to accelerator. By using the `device_type` clause it's
 possible to provide this information only on accelerators where the
 optimizations apply and allow the compiler to make its own decisions on other
 architectures. The OpenACC specification specifically suggests `nvidia`,
-`radeon`, and `xeonphi` as three common device type strings.
+`radeon`, and `host` as three common device type strings.
 

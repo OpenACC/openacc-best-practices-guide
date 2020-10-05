@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     StartTimer();
     int iter = 0;
     
-#pragma acc data copy(A[1:n][1:m]) create(Anew[n][m])
+#pragma acc data copy(A[:n][:m]) create(Anew[:n][:m])
     while ( error > tol && iter < iter_max )
     {
         error = 0.0;

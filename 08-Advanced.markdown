@@ -79,8 +79,8 @@ these asynchronous operations and the associated waits such that independent
 operations could potentially be executed concurrently. Both `async` and `wait`
 have an optional argument for a non-negative, integer number that specifies a
 queue number for that operation. All operations placed in the same queue will
-operate in-order, but operations place in different queues may operate in any
-order with respect to each other. Operations in different queues mayi, but
+operate in-order, but operations placed in different queues may operate in any
+order with respect to each other. Operations in different queues may, but
 are not guaranteed to, operate in parallel. These work queues are unique
 per-device, so two devices will have distinct queues with the same number. If
 a `wait` is encountered without an argument, it will wait on all previously
@@ -181,6 +181,8 @@ examples.)*
         image[y*WIDTH+x]=mandelbrot(x,y);
       }
     }
+    
+    #pragma acc update self(image[:WIDTH*HEIGHT])
 ~~~~
 
 ---
@@ -192,6 +194,8 @@ examples.)*
         image(ix,iy) = min(max(int(mandelbrot(ix-1,iy-1)),0),MAXCOLORS)
       enddo
     enddo
+    
+    !$acc update self(image)
 ~~~~
 
 Since each pixel is independent of each other, it's possible to use a technique
@@ -237,6 +241,8 @@ values for the current block. The modified loop nests are shown below.
         }
       }
     }
+
+    #pragma acc update self(image[:WIDTH*HEIGHT])
 ~~~~
 
 ---
@@ -254,6 +260,8 @@ values for the current block. The modified loop nests are shown below.
         enddo
       enddo
     enddo
+
+    !$acc update self(image)
 ~~~~
 
 At this point we have only confirmed that we can successfully generate each
@@ -388,18 +396,18 @@ on a given machine.
 
 Below we see a screenshot showing before and after profiles from applying these
 changes to the code on an NVIDIA GPU platform. Similar results should be
-possible on any acclerated platform. Using 64 blocks and two asynchronous
+possible on any acclerated platform. Using 16 blocks and two asynchronous
 queues, as shown below, roughly a 2X performance improvement was observed on
 the test machine over the performance without pipelining.
 
-![Visual profiler timelines for the original mandelbrot code (Top) and the
-pipelined code using 64 blocks over 2 asynchronous
-queues (Bottom).](images/mandelbrot_timeline.png)
+![NVIDIA NSight Systems profiler timelines for the original mandelbrot code (Top) and the
+pipelined code using 16 blocks over 2 asynchronous
+queues (Bottom).](images/mandelbrot_async_nsight.png)
 
 Multi-device Programming
 ------------------------
 
-For systems containing more than accelerator, OpenACC provides and API to make
+For systems containing more than one accelerator, OpenACC provides an API to make
 operations happen on a particular device. In case a system contains
 accelerators of different types, the specification also allows for querying and
 selecting devices of a specific architecture.
@@ -424,6 +432,13 @@ type of the current default device. The `acc_set_device_type()` specifies to
 the runtime the type of device that the runtime should use for accelerator
 operations, but allows the runtime to choose which device of that type to use.
 
+OpenACC has recently introduced the `set` directive, which allows for
+multi-device programming with less reliance on using the OpenACC API.
+The `set` directive can be used to set the device number and device type
+that should be used and is functionally equivalent to the
+`acc_set_device_num()` API function. To set the device number, use
+`device_num` clause, and to set the type use the `device_type` clause.
+
 ---
 
 ### Multi-device Programming Example ###
@@ -438,13 +453,13 @@ full image array on each device, although only a part of the array is actually
 needed. When the memory requirements of the application is large, it will be
 necessary to allocate just the pertinent parts of the data on each accelerator.
 
-Once the data has been created on each device, a call to `acc_get_device_type()`
+Once the data has been created on each device, a call to `acc_set_device_num()`
 in the blocking loop, using a simple modulus operation to select which device
 should receive each block, will sent blocks to different devices. 
 
 Lastly it's necessary to introduce a loop over devices to wait on each device
 to complete. Since the `wait` directive is per-device, the loop will once again
-use `acc_get_device_type()` to select a device to wait on, and then use an
+use `acc_set_device_num()` to select a device to wait on, and then use an
 `exit data` directive to deallocate the device memory. The final code is below.
 
 ~~~~ {.c .numberLines}
@@ -513,8 +528,8 @@ production codes the developer will likely want to partition the work such that
 only the parts of the array needed by a specific device are available there.
 Additionally, by using CPU threads it may be possible to issue work to the
 devices more quickly and improve overall performance. Figure 7.3
-shows a screenshot of the NVIDIA Visual Profiler showing the mandelbrot
+shows a screenshot of the NVIDIA NSight Systems showing the mandelbrot
 computation divided across two NVIDIA GPUs.
 
-![NVIDIA Visual Profiler timeline for multi-device mandelbrot](images/multigpu_mandelbrot_timeline.png)
+![NVIDIA NSight Systems timeline for multi-device mandelbrot](images/multigpu_mandelbrot_timeline_nsight.png)
 
