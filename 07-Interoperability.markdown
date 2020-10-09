@@ -21,7 +21,7 @@ in place of writing a *saxpy* routine, as was shown in an earlier chapter. This
 routine is freely provided by NVIDIA for their hardware in the CUBLAS library.
 Most other vendors provide their own, tuned library.
 
-The `host_data` region gives the programmer a way to expose the device address
+The `host_data` directive gives the programmer a way to expose the device address
 of a given array to the host for passing into a function. This data must have
 already been moved to the device previously. The name of this construct often 
 confuses new users, but it can be thought of as a reverse `data` region, since 
@@ -68,7 +68,7 @@ as device pointers using the `host_data` region.
 ~~~~
 
 The call to `cublasSaxpy` can be changed to any function that expects device
-memory as parameter.
+pointers as parameters.
 
 Using Device Pointers
 ---------------------
@@ -141,7 +141,7 @@ device and then uses that array within an OpenACC region.
 
 Notice that in the `set` and `saxpy` routines, where the OpenACC compute
 regions are found, each compute region is informed that the pointers being
-passed in are already device pointers by using the `deviceptr` keyword. This
+passed in are already device pointers by using the `deviceptr` clause. This
 example also uses the `acc_malloc`, `acc_free`, and `acc_memcpy_from_device`
 routines for memory management. Although the above example uses `acc_malloc`
 and `acc_memcpy_from_device`, which are provided by the OpenACC specification
@@ -154,6 +154,15 @@ OpenACC provides the `acc_deviceptr` and `acc_hostptr` function calls for
 obtaining the device and host addresses of pointers based on the host and
 device addresses, respectively. These routines require that the addresses
 actually have corresponding addresses, otherwise they will return NULL.
+
+~~~~ {.c .numberLines}
+    double * x = (double*) malloc(N*sizeof(double));
+    #pragma acc data create(x[:N])
+    {
+        double * device_x = (double*) acc_deviceptr(x);
+        foo(device_x);
+    }
+~~~~
 
 <!---
 Mapping Arrays
