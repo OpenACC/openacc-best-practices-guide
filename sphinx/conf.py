@@ -57,12 +57,12 @@ html_theme = 'default'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-master_doc = 'openacc-guide'
-#master_doc = '00-Title'
+#master_doc = 'openacc-guide'
+master_doc = '00-Title'
 
 source_suffix = {
-    '.rst': 'restructuredtext',
+#    '.rst': 'restructuredtext',
 #    '.txt': 'markdown',
 #    '.markdown': 'markdown',
-#    '.md': 'markdown'
+    '.md': 'markdown'
 }
