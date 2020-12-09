@@ -8,4 +8,4 @@ version: 2
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
   builder: html
-  configuration: sphinx-conf.py
+  configuration: conf.py
