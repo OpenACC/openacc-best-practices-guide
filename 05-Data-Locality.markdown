@@ -32,7 +32,7 @@ The next step in the acceleration process is to provide the compiler with
 additional information about data locality to maximize reuse of data on the
 device and minimize data transfers. It is after this step that most
 applications will observe the benefit of OpenACC acceleration. This step will
-be primarily beneficial on machine where the host and device have separate
+be primarily beneficial on machines where the host and device have separate
 memories.
 
 Data Regions
@@ -120,15 +120,16 @@ description of their meanings, follow.
   is mixed with another programming model, as will be discussed in the
   interoperability chapter.
 
-In addition to these data clauses, OpenACC 1.0 and 2.0 provide `present_or_*`
-clauses (`present_or_copy`, for instance) that inform the compiler to check
-whether the variable is already present on the device; if it is present, use
-that existing copy of the data, if it is not, perform the action listed. These
-routines are frequently abbreviated, like `pcopyin` instead of
-`present_or_copyin`. In an upcoming OpenACC specification the behavior of all
-data directives will be *present or*, so programmers should begin writing their
-applications using these directives to ensure correctness with future OpenACC
-specifications. This change will simplify data reuse for the programmer.
+In the case of the `copy`, `copyin`, `copyout` and `create` clause, their
+intended functionality will not occur if the variable referenced already
+exists within device memory. It may be helpful to think of these clauses
+as having an implicit `present` clause attached to them, where if the variable
+is found to be present on the device, the other clause will be ignored.
+An important example of this behavior is that using the `copy` clause
+when the variable already exists within device memory will not copy any
+data between the host and device. There is a different directive for
+copying data between the host and device from within a data region, and
+will be discussed shortly.
 
 ### Shaping Arrays ###
 Sometimes a compiler will need some extra help determining the size and shape
@@ -140,14 +141,14 @@ data needs to be copied. To give this information the programmer adds a *shape*
 specification to the data clauses. 
 
 In C/C++ the shape of an array is described
-as `x[start:count]` where *start* is the first element to be copied and
+as `x[start:count]` where *x* is the variable name, *start* is the first element to be copied and
 *count* is the number of elements to copy. If the first element is 0, then it
-may be left off. 
+may be left off, taking the form of `x[:count]`. 
 
-In Fortran the shape of an array is described as `x(start:end)` where *start*
-is the first element to be copied and *end* is the last element to be copied.
-If *start* is the beginning of the array or *end* is the end of the array, they
-may be left off. 
+In Fortran the shape of an array is described as `x(start:end)` where *x* is the  
+variable name, *start* is the first element to be copied and *end* is the last element
+to be copied. If *start* is the beginning of the array or *end* is the end of the array,
+they may be left off, taking the form of `x(:end)`, `x(start:)` or `x(:)`. 
 
 Array shaping is frequently necessary in C/C++ codes when the OpenACC appears
 inside of function calls or the arrays are dynamically allocated, since the
@@ -194,60 +195,23 @@ adding shape information to each of the arrays.
 
 ----
 
-With these data clauses it is possible to further improve the example shown
-above by informing the compiler how and when it should perform data transfers.
-In this simple example above, the programmer knows that both `x` and `y` will
-be populated with data on the device, so neither will need to be copied to the
-device, but the results of `y` are significant, so it will need to be copied
-back to the host at the end of the calculation. The code below demonstrates
-using the `create` and `copyout` directives to describe exactly this data
-locality to the compiler.
-
-~~~~ {.c .numberLines}
-    #pragma acc data create(x) copyout(y)
-    {
-      #pragma acc parallel loop
-        for (i=0; i<N; i++)
-        {
-          y[i] = 0.0f;
-          x[i] = (float)(i+1);
-        }
-      
-      #pragma acc parallel loop
-        for (i=0; i<N; i++)
-        {
-          y[i] = 2.0f * x[i] + y[i];
-        }
-    }
-~~~~
-
-----
-
-~~~~ {.fortran .numberLines}
-    !$acc data create(x) copyout(y)
-    !$acc parallel loop
-    do i=1,N
-      y(i) = 0
-      x(i) = i
-    enddo
-  
-    !$acc parallel loop
-    do i=1,N
-      y(i) = 2.0 * x(i) + y(i)
-    enddo
-    !$acc end data
-~~~~
-
+In this example, the programmer knows that both `x` and `y` will
+be populated with data on the device, so neither need to have data copied
+from the host. However, since `y` is used within a `copyout` clause,
+the data contained within `y` will be copied from the device to the host
+when the end of the data region is reached. This is useful in a situation
+where you need the results stored in `y` later in host code.
 
 Unstructured Data Lifetimes
 ---------------------------
-While structured data regions are generally sufficient for optimizing the data
-locality in a program, they are not sufficient for some programs, particularly
-those using Object Oriented coding practices. For example, in a C++ class data
+While structured data regions are sufficient for optimizing the data
+locality in many program, they are not sufficient for some cases, particularly
+those using Object Oriented coding practices, or when wanting to manage device
+data across different code files. For example, in a C++ class data
 is frequently allocated in a class constructor, deallocated in the destructor,
 and cannot be accessed outside of the class. This makes using structured data
 regions impossible because there is no single, structured scope where the
-construct can be placed.  For these situations OpenACC 2.0 introduced
+construct can be placed.  For these situations we can use
 unstructured data lifetimes. The `enter data` and `exit data` directives can be
 used to identify precisely when data should be allocated and deallocated on the
 device. 
@@ -258,10 +222,14 @@ may be used to specify when data should be created on the device.
 The `exit data` directive accepts the `copyout` and a special `delete` data
 clause to specify when data should be removed from the device. 
 
-Please note that multiple `enter data` directives may place an array on the
-device, but when any `exit data` directive removes it from the device it will
-be immediately removed, regardless of how many `enter data` regions reference
-it.
+If a variable appears in multiple `enter data` directives, it will only be
+deleted from the device if an equivalent number of `exit data` directives
+are used. To ensure that the data is deleted, you can add the `finalize`
+clause to the `exit data` directive. Additionally, if a variable appears
+in multiple `enter data` directives, only the instance will do any
+host-to-device data movement. If you need to move data between the host
+and device any time after data is allocated with `enter data`, you should
+use the `update` directive, which is discussed later in this chapter.
 
 ### C++ Class Data ###
 C++ class data is one of the primary reasons that unstructured data lifetimes
@@ -362,13 +330,10 @@ Keeping data resident on the accelerator is often key to obtaining high
 performance, but sometimes it's necessary to copy data between host and device
 memories. The `update` directive provides a way to explicitly
 update the values of host or device memory with the values of the other. This
-can be thought of as syncrhonizing the contents of the two memories. The
+can be thought of as synchronizing the contents of the two memories. The
 `update` directive accepts a `device` clause for copying data from the host to
-the device and a `self` directive for updating from the device to local memory,
-which is the host memory, except in the case of nested OpenACC regions. OpenACC
-1.0 had a `host` clause, which is deprecated in OpenACC 2.0 and behaves the
-same as `self`. The `update` directive has other clauses and the more commonly
-used ones will be discussed in a later chapter.
+the device and a `self` clause for updating from the device to local memory,
+which is the host memory.
 
 As an example of the `update` directive, below are two routines that may be
 added to the above `Data` class to force a copy from host to device and device
@@ -397,8 +362,8 @@ exchanging boundary conditions.
 should always be thought of as a singular object, rather than a *host* copy and
 a *device* copy. Even when developing on a machine with a unified host and
 device memory it is important to include an `update` directive whenever
-accessing data from the host or device that was previous written to by the
-other, it is important to use an `update` directive to ensure correctness on
+accessing data from the host or device that was previously written to by the
+other, as this ensures correctness on
 all devices.  For systems with distinct memories, the `update` will synchronize
 the values of the affected variable on the host and the device. On devices with
 a unified memory, the update will be ignored, incurring no performance penalty.
@@ -425,6 +390,7 @@ non-portable.
     }
     
     #pragma acc update self(a[0:N])
+    
     for(int i=0; i<N; i++)
     {
       b[i] = a[i];  
@@ -535,7 +501,7 @@ below.
 the code, so only the `parallel loop` version will be shown.*
 
 ~~~~ {.c .numberLines startFrom="51"}
-    #pragma acc data copy(A[1:n][1:m]) create(Anew[n][m])
+    #pragma acc data copy(A[:n][:m]) create(Anew[:n][:m])
         while ( error > tol && iter < iter_max )
         {
             error = 0.0;
@@ -602,7 +568,7 @@ the code, so only the `parallel loop` version will be shown.*
 With this change, only the value computed for the maximum error, which is
 required by the convergence loop, is copied from the device every iteration.
 The `A` and `Anew` arrays will remain local to the device through the extent of
-this calculation. Using the NVIDIA Visual Profiler again, we see that each
+this calculation. Using the NVIDIA NSight Systems again, we see that each
 data transfers now only occur at the beginning and end of the data region and
 that the time between each iterations is much less. 
 
