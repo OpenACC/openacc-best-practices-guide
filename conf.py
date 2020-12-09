@@ -64,6 +64,6 @@ master_doc = '00-Title'
 source_suffix = {
 #    '.rst': 'restructuredtext',
 #    '.txt': 'markdown',
-#    '.markdown': 'markdown',
-    '.md': 'markdown'
+    '.markdown': 'markdown',
+#    '.md': 'markdown'
 }
