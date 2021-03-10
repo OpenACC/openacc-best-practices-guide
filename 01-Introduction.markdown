@@ -37,7 +37,7 @@ performance.
 
 ### Libraries ###
 
-Standard (and defacto standard) libraries provide the highest degree of
+Standard (and *de facto* standard) libraries provide the highest degree of
 portability because the programmer can frequently replace only the library
 used without even changing the source code itself when changing compute
 architectures. Since many hardware vendors provide highly-tuned versions of
@@ -45,7 +45,7 @@ common libraries, using libraries can also result in very high performance.
 Although libraries can provide both high portability and high performance, few
 applications are able to use only libraries because of their limited scope.
     
-Some vendors provide additional libraries as a value-added for their
+Some vendors provide additional libraries as a value-add for their
 platform, but which implement non-standard APIs. These libraries provide
 high performance, but little portability. Fortunately because libraries provide
 modular APIs, the impact of using non-portable libraries can be isolated to
@@ -55,9 +55,9 @@ limit the impact on overall application portability.
 
 Many standard programming languages either have or are beginning to adopt
 features for parallel programming. For example, Fortran 2008 added support
-for `do concurrent`, which exposes the potenial parallelism with that loop,
+for `do concurrent`, which exposes the potential parallelism with that loop,
 and C++17 added support for `std::execution`, which enables users to express
-parallelism with certian loop structures.
+parallelism with certain loop structures.
 Adoption of these language features is often slow, however, and many standard languages are
 only now beginning to discuss parallel programming features for future language
 releases. When these features become commonplace, they will provide high
@@ -70,7 +70,7 @@ When standard programming languages lack support for necessary features
 compiler directives can provide additional functionality. Directives, in the
 form of pragmas in C/C++ and comments in Fortran, provide additional
 information to compilers on how to build and/or optimize the code. Most
-compilers support their own directives, but also directives such as OpenACC and
+compilers support their own directives, and also directives such as OpenACC and
 OpenMP, which are backed by industry groups and implemented by a range of
 compilers. When using industry-backed compiler directives the programmer can
 write code with a high degree of portability across compilers and
@@ -125,7 +125,7 @@ In order to ensure that OpenACC would be portable to all computing
 architectures available at the time of its inception and into the future,
 OpenACC defines an abstract model for accelerated computing. This model exposes
 multiple levels of parallelism that may appear on a processor as well as a
-hierarchy of memories with varying degrees of speed and addressibility. The
+hierarchy of memories with varying degrees of speed and addressability. The
 goal of this model is to ensure that OpenACC will be applicable to more than just a
 particular architecture or even just the architectures in wide availability at
 the time, but to ensure that OpenACC could be used on future devices as well. 
@@ -152,7 +152,7 @@ throughout this guide when they are pertinent.
 programming models, such as CUDA or OpenCL, where host and accelerator memory
 is frequently represented by two distinct variables (`host_A[]` and
 `device_A[]`, for instance), it's important to remember that when using OpenACC
-a variable should be thought of as a single object, regardless of whether the
+a variable should be thought of as a single object, regardless of whether
 it's backed by memory in one or more memory spaces. If one assumes that a
 variable represents two separate memories, depending on where it is used in the
 program, then it is possible to write programs that access the variable in
