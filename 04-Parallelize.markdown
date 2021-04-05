@@ -29,9 +29,9 @@ The Kernels Construct
 The `kernels` construct identifies a region of code that may contain
 parallelism, but relies on the automatic parallelization capabilities of the
 compiler to analyze the region, identify which loops are safe to parallelize,
-and then accelerate those loops. Developers will little or no parallel
+and then accelerate those loops. Developers with little or no parallel
 programming experience, or those working on functions containing many loop
-nests that might be parallelized will find the kernels directive a good
+nests that might be parallelized, will find the kernels directive a good
 starting place for OpenACC acceleration. The code below demonstrates the use of
 `kernels` in both C/C++ and Fortran.
 
@@ -131,7 +131,7 @@ rather than performing its own compiler analysis of the loops. In this case,
 the programmer is only identifying the availability of parallelism, but still
 leaving the decision of how to map that parallelism to the accelerator to the
 compiler's knowledge about the device. This is a key feature that
-differentiates OpenACC from other, similar programming models. The programmer
+differentiates OpenACC from other similar programming models. The programmer
 identifies the parallelism without dictating to the compiler how to exploit
 that parallelism. This means that OpenACC code will be portable to devices
 other than the device on which the code is being developed, because details
@@ -162,11 +162,11 @@ directive is an assertion to the compiler of where there is parallelism.
 An important thing to note about the `kernels` construct is that the compiler
 will analyze the code and only parallelize when it is certain that it is safe
 to do so.  In some cases the compiler may not have enough information at
-compile time to determine whether a loop is safe the parallelize, in which case
+compile time to determine whether a loop is safe to parallelize, in which case
 it will not parallelize the loop, even if the programmer can clearly see that
 the loop is safely parallel. For example, in the case of C/C++ code, where
-arrays are passed into functions as pointers, the compiler may not always be
-able to determine that two arrays do not share the same memory, otherwise known
+arrays are represented as pointers, the compiler may not always be
+able to determine that two arrays do not reference the same memory, otherwise known
 as *pointer aliasing*. If the compiler cannot know that two pointers are not
 aliased it will not be able to parallelize a loop that accesses those arrays. 
 
@@ -238,7 +238,7 @@ may access this shared `tmp` variable in unpredictable ways, resulting in a
 race condition and potentially incorrect results. Below is the synax for the
 `private` clause.
 
-    private(variable)
+    private(var1, var2, var3, ...)
 
 There are a few special cases that must be understood about scalar
 variables within loops. First, loop iterators will be privatized by default, so
@@ -258,7 +258,7 @@ The `reduction` clause works similarly to the `private` clause in that a
 private copy of the affected variable is generated for each loop iteration, but
 `reduction` goes a step further to reduce all of those private copies into one
 final result, which is returned from the region. For example, the maximum of
-all private copies of the variable may be required or perhaps the sum. A
+all private copies of the variable may be required. A
 reduction may only be specified on a scalar variable and only common, specified
 operations can be performed, such as `+`, `*`, `min`, `max`, and various
 bitwise operations (see the OpenACC specification for a complete list). The
@@ -290,7 +290,7 @@ functions from within parallel regions. The example below shows a C++ class
 `float3` that contains 3 floating point values and has a `set` function that is
 used to set the values of its `x`, `y`, and `z` members to that of another
 instance of `float3`. In order for this to work from within a parallel region,
-the `set` function is declared as an OpenACC routine using the `acc routine`
+the `set` function is declared as an OpenACC routine using the `routine`
 directive. Since we know that it will be called by each iteration of a parallel
 loop, it's declared a `seq` (or *sequential*) routine. 
 
@@ -308,12 +308,77 @@ loop, it's declared a `seq` (or *sequential*) routine.
     };
 ~~~~
 
+Atomic Operations
+-----------------
+When one or more loop iterations need to access an element in memory at the
+same time data races can occur. For instance, if one loop iteration is
+modifying the value contained in a variable and another is trying to read from
+the same variable in parallel, different results may occur depending on which
+iteration occurs first. In serial programs, the sequential loops ensure that
+the variable will be modified and read in a predictable order, but parallel
+programs don't make guarantees that a particular loop iteration will happen
+before another. In simple cases, such as finding a sum, maximum or minimum
+value, a reduction operation will ensure correctness. For more complex
+operations, the `atomic` directive will ensure that no two threads can attempt
+to perfom the contained operation simultaneously. Use of atomics is sometimes a
+necessary part of parallelization to ensure correctness.
+
+The `atomic` directive accepts one of four clauses to declare the type of
+operation contained within the region. The `read` operation ensures that no two
+loop iterations will read from the region at the same time. The `write`
+operation will ensure that no two iterations with write to the region at the
+same time. An `update` operation is a combined read and write. Finally a
+`capture` operation performs an update, but saves the value calculated in that
+region to use in the code that follows. If no clause is given then an update
+operation will occur.
+
+### Atomic Example ###
+
+<!-- ![A histogram of number distribution.](images/histogram.png) -->
+
+A histogram is a common technique for counting up how many times values occur
+from an input set according to their value. The example
+code below loops through a series of integer numbers of a known range and
+counts the occurances of each number in that range. Since each number in the
+range can occur multiple times, we need to ensure that each element in the
+histogram array is updated atomically. The code below demonstrates using the
+`atomic` directive to generate a histogram.
+
+~~~~ {.c .numberLines}
+    #pragma acc parallel loop
+    for(int i=0;i<HN;i++)
+      h[i]=0;
+
+    #pragma acc parallel loop
+    for(int i=0;i<N;i++) {
+      #pragma acc atomic update
+      h[a[i]]+=1;
+    }
+~~~~
+
+---
+
+~~~~ {.fortran .numberLines}
+    !$acc kernels
+    h(:) = 0
+    !$acc end kernels
+    !$acc parallel loop
+    do i=1,N
+      !$acc atomic
+      h(a(i)) = h(a(i)) + 1
+    enddo
+    !$acc end parallel loop
+~~~~
+
+Notice that updates to the histogram array `h` are performed atomically.
+Because we are incrementing the value of the array element, an update operation
+is used to read the value, modify it, and then write it back.
 
 Case Study - Parallelize
 ------------------------
 In the last chapter we identified the two loop nests within the convergence
 loop as the most time consuming parts of our application.  Additionally we
-looked at the loops and were able to determine that the outer, convergence loop
+looked at the loops and were able to determine that the outer convergence loop
 is not parallel, but the two loops nested within are safe to parallelize. In
 this chapter we will accelerate those loop nests with OpenACC using the
 directives discussed earlier in this chapter. To further emphasize the
@@ -323,7 +388,7 @@ will accelerate the loops using both and discuss the differences.
 ### Parallel Loop ###
 We previously identified the available parallelism in our code, now we will use
 the `parallel loop` directive to accelerate the loops that we identified. Since
-we know that the two, doubly-nested sets of loops are parallel, simply add a
+we know that the two doubly-nested sets of loops are parallel, simply add a
 `parallel loop` directive above each of them. This will inform the compiler
 that the outer of the two loops is safely parallel. Some compilers will
 additionally analyze the inner loop and determine that it is also parallel, but
@@ -407,8 +472,8 @@ At this point the code looks like the examples below.
 ***Best Practice:*** Most OpenACC compilers will accept only the `parallel
 loop` directive on the `j` loops and detect for themselves that the `i` loop
 can also be parallelized without needing the `loop` directives on the `i`
-loops. By placing a `loop` directive on each loop that I know can be
-parallelized the programmer ensures that the compiler will understand that the
+loops. By placing a `loop` directive on each loop that can be
+parallelized, the programmer ensures that the compiler will understand that the
 loop is safe the parallelize. When used within a `parallel` region, the `loop`
 directive asserts that the loop iterations are independent of each other and
 are safe the parallelize and should be used to provide the compiler as much
@@ -417,7 +482,7 @@ information about the loops as possible.
 Building the above code using the PGI compiler (version 19.10) produces the
 following compiler feedback (shown for C, but the Fortran output is similar).
 
-    $ pgcc -acc -ta=tesla -Minfo=accel laplace2d-parallel.c
+    $ pgcc -ta=tesla -Minfo=accel laplace2d-parallel.c
     main:
          56, Generating Tesla code
              57, #pragma acc loop gang /* blockIdx.x */
@@ -436,7 +501,7 @@ following compiler feedback (shown for C, but the Fortran output is similar).
 
 
 Analyzing the compiler feedback gives the programmer the ability to ensure that
-the compiler is producing the expected results and fix any problems if it's not.
+the compiler is producing the expected results or fix any problems.
 In the output above we see that accelerator kernels were generated for the two
 loops that were identified (at lines 58 and 71, in the compiled source file)
 and that the compiler automatically generated data movement, which will be
@@ -612,70 +677,3 @@ version has two compute regions, as opposed to only one in the `kernels`
 version, data is copied back and forth between the two regions. As a result,
 the copy and overhead times are roughly twice that of the `kernels` region,
 although the compute kernel times are roughly the same. 
-
-Atomic Operations
------------------
-When one or more loop iterations need to access an element in memory at the
-same time data races can occur. For instance, if one loop iteration is
-modifying the value contained in a variable and another is trying to read from
-the same variable in parallel, different results may occur depending on which
-iteration occurs first. In serial programs, the sequential loops ensure that
-the variable will be modified and read in a predictable order, but parallel
-programs don't make guarantees that a particular loop iteration will happen
-before anoter. In simple cases, such as finding a sum, maximum, or minimum
-value, a reduction operation will ensure correctness. For more complex
-operations, the `atomic` directive will ensure that no two threads can attempt
-to perfom the contained operation simultaneously. Use of atomics is sometimes a
-necessary part of parallelization to ensure correctness.
-
-The `atomic` directive accepts one of four clauses to declare the type of
-operation contained within the region. The `read` operation ensures that no two
-loop iterations will read from the region at the same time. The `write`
-operation will ensure that no two iterations with write to the region at the
-same time. An `update` operation is a combined read and write. Finally a
-`capture` operation performs an update, but saves the value calculated in that
-region to use in the code that follows. If no clause is given then an update
-operation will occur.
-
-### Atomic Example ###
-
-![A histogram of number distribution.](images/histogram.png)
-
-A histogram is a common technique for counting up how many times values occur
-from an input set according to their value. Figure _ shows a histogram that
-counts the number of times numbers fall within particular ranges. The example
-code below loops through a series of integer numbers of a known range and
-counts the occurances of each number in that range. Since each number in the
-range can occur multiple times, we need to ensure that each element in the
-histogram array is updated atomically. The code below demonstrates using the
-`atomic` directive to generate a histogram.
-
-~~~~ {.c .numberLines}
-    #pragma acc parallel loop
-    for(int i=0;i<HN;i++)
-      h[i]=0;
-
-    #pragma acc parallel loop
-    for(int i=0;i<N;i++) {
-      #pragma acc atomic update
-      h[a[i]]+=1;
-    }
-~~~~
-
----
-
-~~~~ {.fortran .numberLines}
-    !$acc kernels
-    h(:) = 0
-    !$acc end kernels
-    !$acc parallel loop
-    do i=1,N
-      !$acc atomic
-      h(a(i)) = h(a(i)) + 1
-    enddo
-    !$acc end parallel loop
-~~~~
-
-Notice that updates to the histogram array `h` are performed atomically.
-Because we are incrementing the value of the array element, an update operation
-is used to read the value, modify it, and then write it back.
