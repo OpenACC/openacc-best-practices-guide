@@ -128,7 +128,7 @@ the application and select your file via the file manager.
 
 When we open the report in Nsight Systems, we see that the vast majority of
 the time is spent in two routines: main and \_\_c\_mcopy8. A screenshot of
-the initial screen for Nsight systems is show in figure 2.1. Since the code
+the initial screen for Nsight systems is shown in figure 2.1. Since the code
 for this case study is completely within the main function of the program,
 it's not surprising that nearly all of the time is spent in main, but in
 larger applications it's likely that the time will be spent in several other
