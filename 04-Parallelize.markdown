@@ -317,7 +317,7 @@ the same variable in parallel, different results may occur depending on which
 iteration occurs first. In serial programs, the sequential loops ensure that
 the variable will be modified and read in a predictable order, but parallel
 programs don't make guarantees that a particular loop iteration will happen
-before another. In simple cases, such as finding a sum, maximum or minimum
+before another. In simple cases, such as finding a sum, maximum, or minimum
 value, a reduction operation will ensure correctness. For more complex
 operations, the `atomic` directive will ensure that no two threads can attempt
 to perfom the contained operation simultaneously. Use of atomics is sometimes a
@@ -329,7 +329,7 @@ loop iterations will read from the region at the same time. The `write`
 operation will ensure that no two iterations with write to the region at the
 same time. An `update` operation is a combined read and write. Finally a
 `capture` operation performs an update, but saves the value calculated in that
-region to use in the code that follows. If no clause is given then an update
+region to use in the code that follows. If no clause is given, then an update
 operation will occur.
 
 ### Atomic Example ###
