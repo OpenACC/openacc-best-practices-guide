@@ -67,4 +67,5 @@ program laplace
   write(*,'(a,f10.3,a)')  ' completed in ', stop_time-start_time, ' seconds'
 
   deallocate (A,Anew)
+  !$acc end data
 end program laplace
