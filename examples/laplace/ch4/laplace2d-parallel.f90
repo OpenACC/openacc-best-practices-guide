@@ -62,9 +62,9 @@ program laplace
     iter = iter + 1
 
   end do
+  !$acc end data
 
   call cpu_time(stop_time)
-  !$acc end data
   write(*,'(a,f10.3,a)')  ' completed in ', stop_time-start_time, ' seconds'
   deallocate (A,Anew)
 end program laplace
