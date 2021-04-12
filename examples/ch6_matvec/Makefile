@@ -1,5 +1,5 @@
-CXX=pgc++
-CXXFLAGS=-fast -ta=tesla,lineinfo -Minfo=all,intensity,ccff
+CXX=nvc++
+CXXFLAGS=-fast -acc=gpu -gpu=lineinfo -Minfo=all,intensity,ccff
 LDFLAGS=${CXXFLAGS}
 
 cg.x: main.o 
@@ -11,4 +11,4 @@ main.o: main.cpp matrix.h matrix_functions.h vector.h vector_functions.h
 
 .PHONY: clean
 clean:
-	rm -Rf cg.x pgprof* *.o core
+	rm -Rf cg.x *.pgprof *.o core *.nvprof

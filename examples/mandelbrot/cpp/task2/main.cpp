@@ -42,7 +42,7 @@ int main() {
   }
   double st = omp_get_wtime();
 
-  num_blocks = 16
+  num_blocks = 16;
   for(int block = 0; block < num_blocks; block++ ) {
     int start = block * (HEIGHT/num_blocks),
         end   = start + (HEIGHT/num_blocks);

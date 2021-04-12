@@ -1,5 +1,5 @@
-FC=pgfortran
-FCFLAGS=-fast -Minfo=all -ta=tesla
+FC=nvfortran
+FCFLAGS=-fast -acc=gpu -Minfo=all
 
 mandelbrot.x: mandelbrot.o main.o
 	$(FC) $(FCFLAGS) -o $@ $^
@@ -12,4 +12,4 @@ mandelbrot_solution.x: mandelbrot.o main_solution.o
 
 .PHONY: clean
 clean:
-	rm -f *.o core *.lst *.ptx *.pgprof *.cubin *.s *.x *.mod
+	rm -f *.o core *.lst *.ptx *.pgprof *.cubin *.s *.x *.mod *.nvprof
