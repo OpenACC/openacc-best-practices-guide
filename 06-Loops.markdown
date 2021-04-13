@@ -398,7 +398,7 @@ achieving high performance.
 
 ***NOTE: Because this case study features optimization techniques, it is
 necessary to perform optimizations that may be beneficial on one hardware, but
-not on others. This case study was performed using the NVHPC compiler on an
+not on others. This case study was performed using the NVHPC 20.11 compiler on an
 NVIDIA Volta V100 GPU. These same techniques may apply on other architectures,
 particularly those similar to NVIDIA GPUs, but it will be necessary to make
 certain optimization decisions based on the particular accelerator in use.***
