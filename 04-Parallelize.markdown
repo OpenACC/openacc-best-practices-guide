@@ -479,10 +479,10 @@ directive asserts that the loop iterations are independent of each other and
 are safe the parallelize and should be used to provide the compiler as much
 information about the loops as possible.
 
-Building the above code using the PGI compiler (version 19.10) produces the
+Building the above code using the NVHPC compiler produces the
 following compiler feedback (shown for C, but the Fortran output is similar).
 
-    $ pgcc -ta=tesla -Minfo=accel laplace2d-parallel.c
+    $ nvc -acc -Minfo=accel laplace2d-parallel.c
     main:
          56, Generating Tesla code
              57, #pragma acc loop gang /* blockIdx.x */
@@ -592,7 +592,7 @@ analysis to determine where parallelism may be found.
 Taking a look at the compiler output points to some more subtle differences
 between the two approaches.
 
-    $ pgcc -acc -ta=tesla -Minfo=accel laplace2d-kernels.c
+    $ nvc -acc -Minfo=accel laplace2d-kernels.c
     main:
          56, Generating implicit copyin(A[:][:]) [if not already present]
              Generating implicit copyout(Anew[1:4094][1:4094],A[1:4094][1:4094]) [if not already present]
