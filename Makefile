@@ -2,11 +2,10 @@ MDFILES := $(wildcard ??-*.markdown)
 IMGFILES := $(wildcard images/*)
 
 # Override with pandoc executable if building without docker
-PANDOC ?= docker run --rm -it -u `id -u`:`id -g` -v ${PWD}:/data pandoc/latex:latest
+PANDOC ?= docker run --rm -it -u `id -u`:`id -g` -v ${PWD}:/data openacc/best-practices-guide:latest
 
 openacc-guide.pdf: ${MDFILES} ${IMGFILES}
-	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide-nocover.pdf ??-*.markdown --citeproc --highlight-style pygments --top-level-division=chapter -V geometry:letterpaper
-	pdfunite cover-page/cover-page.pdf openacc-guide-nocover.pdf openacc-guide.pdf
+	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide.pdf ??-*.markdown --citeproc --highlight-style pygments --top-level-division=chapter -V geometry:letterpaper -H cover-page/main.tex --pdf-engine=xelatex
 
 openacc-guide.tex: ${MDFILES}
 	${PANDOC} -f markdown+implicit_figures -s -o openacc-guide.tex ??-*.markdown --citeproc --highlight-style pygments --top-level-division=chapter
