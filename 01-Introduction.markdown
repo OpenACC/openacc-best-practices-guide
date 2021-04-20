@@ -8,6 +8,9 @@ publication time and well into the future. Readers should be comfortable with
 C, C++, or Fortran, but do not need experience with parallel programming or
 accelerated computing, although such experience will be helpful. 
 
+Note: This guide is a community effort. To contribute, please visit the project
+[on Github](https://github.com/OpenACC/openacc-best-practices-guide).
+
 Writing Portable Code
 ---------------------
 The current computing landscape is spotted with a variety of computing
