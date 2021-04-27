@@ -561,25 +561,26 @@ discussed in a later chapter.
 At this point we have expressed all of the parallelism in the example code and
 the compiler has parallelized it for an accelerator device. Analyzing the
 performance of this code may yield surprising results on some accelerators,
-however. The results below demonstrate the performance of this code on 1 - 8
-CPU threads on a modern CPU at the time of publication and an NVIDIA Tesla K40
+however. The results below demonstrate the performance of this code on 1 - 16
+CPU threads on an AMD Threadripper CPU and an NVIDIA Volta V100
 GPU using both implementations above. The *y axis* for figure 3.1 is execution
 time in seconds, so smaller is better. For the two OpenACC versions, the bar is
-divided by time transferring data between the host and device, time executing
-on the device, and other time.
+divided by time transferring data between the host and device and time executing
+on the device.
 
 ![Jacobi Iteration Performance - Step 1](images/jacobi_step1_graph.png)
 
-Notice that the performance of this code improves as CPU threads are added to
-the calcuation, but the OpenACC versions perform poorly compared to the CPU
-baseline. The OpenACC `kernels` version performs slightly better than the
-serial version, but the `parallel loop` case performs dramaticaly worse than
-even the slowest CPU version. Further performance analysis is necessary to
+The performance of this improves as more CPU threads are added to the calculation,
+however, since the code is memory-bound the performance benefit of adding
+additional threads quickly diminishes. Also, the OpenACC versions perform poorly
+compared to the CPU
+baseline. The both the OpenACC `kernels` and `parallel loop` versions perform
+worse than the serial CPU baseline. It is also clear that the `parallel loop` version
+spends significantly more time in data transfer than the `kernels` version.
+Further performance analysis is necessary to
 identify the source of this slowdown. This analysis has already been applied to
 the graph above, which breaks down time spent
-computing the solution, copying data to and from the accelerator, and 
-miscelaneous time, which includes various overheads involved in scheduling data
-transfers and computation. 
+computing the solution and copying data to and from the accelerator.
 
 A variety of tools are available for performing this analysis, but since this
 case study was compiled for an NVIDIA GPU, NVIDIA Nsight Systems will be
