@@ -2,12 +2,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: pandoc/latex:latest
+      - image: openacc/best-practices-guide:latest 
     steps:
       - checkout
       - run:
           name: Build PDF
-          command: /usr/local/bin/pandoc -f markdown+implicit_figures -s -o openacc-guide.pdf ??-*.markdown --citeproc --highlight-style pygments --top-level-division=chapter  -V geometry:letterpaper
+          command: /usr/local/bin/pandoc -f markdown+implicit_figures -s -o openacc-guide.pdf ??-*.markdown --citeproc --highlight-style pygments --top-level-division=chapter  -V geometry:letterpaper  -H cover-page/main.tex --pdf-engine=xelatex
       - store_artifacts:
           path: openacc-guide.pdf
 workflows:
