@@ -486,7 +486,7 @@ parallelism to fill each *gang* with more of these short vectors. Below is the
 modified code.
 
 ~~~~ {.c .numberLines}
-    #pragma acc parallel loop gang worker num_workers(32) vector_length(32)
+    #pragma acc parallel loop gang worker num_workers(4) vector_length(32)
     for(int i=0;i<num_rows;i++) {
       double sum=0;
       int row_start=row_offsets[i];
@@ -521,7 +521,7 @@ modified code.
     enddo
 ~~~~
 
-In this version of the code, I've explicitly mapped the outermost look to both
+In this version of the code, I've explicitly mapped the outermost loop to both
 gang and worker parallelism and will vary the number of workers using the
 `num_workers` clause. The results follow.
 
@@ -529,11 +529,11 @@ gang and worker parallelism and will vary the number of workers using the
 32.](images/spmv_speedup_num_workers.png)
 
 On this particular hardware, the best performance comes from a vector length of
-32 and 32 workers. This turns out to be the maximum amount of parallelism that
-the particular accelerator being used supports within a gang. In this case, we
-observed a 1.3X speed-up from decreasing the vector length and another 2.1X
+32 and 4 workers, which is similar to the simpler loop with a default vector length of 128.
+In this case, we
+observed a 2.5X speed-up from decreasing the vector length and another 1.26X
 speed-up from varying the number of workers within each gang, resulting in an
-overall 2.9X performance improvement from the untuned OpenACC code.
+overall 3.15X performance improvement from the untuned OpenACC code.
 
 ***Best Practice:*** Although not shown in order to save space, it's generally
 best to use the `device_type` clause whenever specifying the sorts of
