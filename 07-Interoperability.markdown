@@ -70,6 +70,80 @@ as device pointers using the `host_data` region.
 The call to `cublasSaxpy` can be changed to any function that expects device
 pointers as parameters.
 
+### Device-Aware MPI
+A common use of the `host_data` region is to pass device pointers into a
+device-aware MPI implementation. Such MPI libraries may have specific
+optimizations when passed device data, such as Remote Direct Memory Access
+(RDMA) or pipelining. For synchronous MPI routines, the `host_data` directive
+can be used just as shown above, but care must be taken when mixing this
+directive with asynchronous MPI functions (e.g. MPI_ISend, MPI_IRecv, etc.).
+Take for example the following code:
+
+~~~~ {.c .numberLines}
+    #pragma acc data copyin(buf)
+    { // Data in `buf` put on device
+    #pragma acc host_data use_device(buf)
+    { // Device pointer to `buf` passed to MPI
+       MPI_Isend(buf, ...);
+       // MPI_Isend immediatly returns to main thread
+    }
+    // MPI_Isend may not have completed sending data
+    } // Data in `buf` potentially removed from device
+~~~~
+
+~~~~ {.fortran .numberLines}
+    !$acc data copyin(buf)
+    ! Data in `buf` put on device
+    !$acc host_data use_device(buf)
+    ! Device pointer to `buf` passed to MPI
+       call MPI_Isend(buf, ...);
+       ! MPI_Isend immediatly returns to main thread
+    !$acc end host_data
+    ! MPI_Isend may not have completed sending data
+    !$acc end data
+    ! Data in `buf` potentially removed from device
+~~~~
+
+In the above example the device pointer to the data in `buf` is provided to `MPI_ISend`, 
+which will immediately return control to the thread of execution, even if the data has 
+not yet been sent. As such, when the end of the data region is reached, the device copy
+of `buf` may be deallocated before the MPI library has finished sending the data. This could 
+result in an application crash or the application proceeding, but sending garbage values. 
+To fix this issue, developers must issue an `MPI_Wait` before the end of the data region to ensure
+that it is safe to change or deallocate `buf`. The examples below demonstrate how to correctly
+use `host_data` with asynchronous MPI calls.
+
+~~~~ {.c .numberLines}
+    #pragma acc data copyin(buf)
+    { // Data in `buf` put on device
+    #pragma acc host_data use_device(buf)
+    { // Device pointer to `buf` passed to MPI
+       MPI_Isend(buf, ..., request);
+       // MPI_Isend immediatly returns to main thread
+    }
+    // Wait to ensure `buf` is safe to deallocate
+    MPI_Wait(request, ...);
+    } // Data in `buf` potentially removed from device
+~~~~
+
+~~~~ {.fortran .numberLines}
+    !$acc data copyin(buf)
+    ! Data in `buf` put on device
+    !$acc host_data use_device(buf)
+    ! Device pointer to `buf` passed to MPI
+       call MPI_Isend(buf, ...)
+       ! MPI_Isend immediatly returns to main thread
+    !$acc end host_data
+    ! Wait to ensure `buf` is safe to deallocate
+    call MPI_Wait(request, ...)
+    !$acc end data
+    ! Data in `buf` potentially removed from device
+~~~~
+
+**Note:** This same issue can occur with other asynchronous device libaries or device kernels. 
+When using `host_data` with any asynchronous routine care must be taken to ensure the affected
+buffers can be safely re-used or deallocated. 
+
 Using Device Pointers
 ---------------------
 Because there is already a large ecosystem of accelerated applications using
