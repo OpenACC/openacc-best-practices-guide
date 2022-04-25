@@ -70,7 +70,12 @@ as device pointers using the `host_data` region.
 The call to `cublasSaxpy` can be changed to any function that expects device
 pointers as parameters.
 
-### Device-Aware MPI
+### Asynchronous Device Libraries
+***NOTE:*** When using the `host_data` region to pass data into asynchronous
+libraries calls or kernels care must be taken regarding the lifetime of data
+on the device. A common example of this pattern is passing device data to a
+device-aware MPI library, as illustrated below.  
+
 A common use of the `host_data` region is to pass device pointers into a
 device-aware MPI implementation. Such MPI libraries may have specific
 optimizations when passed device data, such as Remote Direct Memory Access
@@ -139,10 +144,6 @@ use `host_data` with asynchronous MPI calls.
     !$acc end data
     ! Data in `buf` potentially removed from device
 ~~~~
-
-**Note:** This same issue can occur with other asynchronous device libaries or device kernels. 
-When using `host_data` with any asynchronous routine care must be taken to ensure the affected
-buffers can be safely re-used or deallocated. 
 
 Using Device Pointers
 ---------------------
