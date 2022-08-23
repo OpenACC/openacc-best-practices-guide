@@ -9,7 +9,7 @@ debugging.
 ### OpenACC Directive Syntax ###
 This guide will introduce OpenACC directives incrementally, as they become
 useful for the porting process. All OpenACC directives have a common syntax,
-however, with the `acc` sentinal, designating to the compiler that the text
+however, with the `acc` sentinel, designating to the compiler that the text
 that follows will be OpenACC, a directive, and clauses to that directive, many
 of which are optional but provide the compiler with additional information. 
 
