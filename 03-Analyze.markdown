@@ -7,7 +7,7 @@ performance analysis tool is outside of the scope of this document. The purpose
 of this section is to provide guidance on choosing important sections of code
 for acceleration, which is independent of the profiling tools available. 
 
-Throughout this guide, the NVIDIA Nsight Systems performance analysis tool which is provided with the CUDA toolkit, will be used for CPU profiling. When accelerator profiling is needed, the application will be run on an NVIDIA GPU and the NVIDIA Nsight Systems profiler will be again be used.
+Throughout this guide, the NVIDIA Nsight Systems performance analysis tool which is provided with the CUDA toolkit, will be used for CPU profiling. When accelerator profiling is needed, the application will be run on an NVIDIA GPU and the NVIDIA Nsight Systems profiler will be used again.
 
 Baseline Profiling
 ------------------

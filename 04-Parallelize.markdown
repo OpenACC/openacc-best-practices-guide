@@ -326,7 +326,7 @@ necessary part of parallelization to ensure correctness.
 The `atomic` directive accepts one of four clauses to declare the type of
 operation contained within the region. The `read` operation ensures that no two
 loop iterations will read from the region at the same time. The `write`
-operation will ensure that no two iterations with write to the region at the
+operation will ensure that no two iterations will write to the region at the
 same time. An `update` operation is a combined read and write. Finally a
 `capture` operation performs an update, but saves the value calculated in that
 region to use in the code that follows. If no clause is given, then an update
@@ -474,9 +474,9 @@ loop` directive on the `j` loops and detect for themselves that the `i` loop
 can also be parallelized without needing the `loop` directives on the `i`
 loops. By placing a `loop` directive on each loop that can be
 parallelized, the programmer ensures that the compiler will understand that the
-loop is safe the parallelize. When used within a `parallel` region, the `loop`
+loop is safe to parallelize. When used within a `parallel` region, the `loop`
 directive asserts that the loop iterations are independent of each other and
-are safe the parallelize and should be used to provide the compiler as much
+are safe to parallelize and should be used to provide the compiler as much
 information about the loops as possible.
 
 Building the above code using the NVHPC compiler produces the
@@ -625,8 +625,8 @@ discussed in a later chapter.
 
 At this point we have expressed all of the parallelism in the example code and
 the compiler has parallelized it for an accelerator device. Analyzing the
-performance of this code may yield surprising results on some accelerators,
-however. The results below demonstrate the performance of this code on 1 - 16
+performance of this code may yield surprising results on some accelerators.
+The results below demonstrate the performance of this code on 1 - 16
 CPU threads on an AMD Threadripper CPU and an NVIDIA Volta V100
 GPU using both implementations above. The *y axis* for figure 3.1 is execution
 time in seconds, so smaller is better. For the two OpenACC versions, the bar is
@@ -639,7 +639,7 @@ The performance of this improves as more CPU threads are added to the calculatio
 however, since the code is memory-bound the performance benefit of adding
 additional threads quickly diminishes. Also, the OpenACC versions perform poorly
 compared to the CPU
-baseline. The both the OpenACC `kernels` and `parallel loop` versions perform
+baseline. Both the OpenACC `kernels` and `parallel loop` versions perform
 worse than the serial CPU baseline. It is also clear that the `parallel loop` version
 spends significantly more time in data transfer than the `kernels` version.
 Further performance analysis is necessary to
@@ -673,7 +673,7 @@ When an OpenACC compiler parallelizes a region of code it must analyze the data
 that is needed within that region and copy it to and from the accelerator if
 necessary. This analysis is done at a per-region level and will typically
 default to copying arrays used on the accelerator both to and from the device
-at the beginning and end of the region respectively. Since the `parallel loop`
+at the beginning and end of the region, respectively. Since the `parallel loop`
 version has two compute regions, as opposed to only one in the `kernels`
 version, data is copied back and forth between the two regions. As a result,
 the copy and overhead times are roughly twice that of the `kernels` region,
