@@ -117,7 +117,7 @@ a long time and compute a significant amount work each. Modern GPUs and many-cor
 processors, however, are designed to execute fine-grained threads, which are
 short-lived and execute a minimal amount of work each. These parallel
 architectures achieve high throughput by trading single-threaded performance in
-favor of several orders in magnitude more parallelism. This means that when
+favor of more parallelism. This means that when
 accelerating an application with OpenACC, which was designed in light of 
 increased hardware parallelism, it may be necessary to refactor the code to
 favor tightly-nested loops with a significant amount of data reuse. In many

@@ -124,7 +124,7 @@ one _worker_, which operates on a _vector_ of data.
 Mapping Parallelism to the Hardware
 -----------------------------------
 With some understanding of how the underlying accelerator hardware works it's
-possible to inform that compiler how it should map the loop iterations into
+possible to inform the compiler how it should map the loop iterations into
 parallelism on the hardware. It's worth restating that the more detail the
 compiler is given about how to map the parallelism onto a particular
 accelerator the less performance portable the code will be. For instance, 
@@ -219,7 +219,7 @@ form of the `num_gangs`, `num_workers`, and `vector_length` clauses to the
 ~~~~ {.fortran .numberLines}
     !$acc parallel loop gang vector_length(128)
     do j=1,M
-      !$acc loop vector(128)
+      !$acc loop vector
       do i=1,N
 ~~~~
 
@@ -412,7 +412,7 @@ application.
     matvec(const matrix &, const vector &, const vector &):
           3, Generating Tesla code
               4, #pragma acc loop gang /* blockIdx.x */
-              9, #pragma acc loop vector(128) /* threadIdx.x */
+              9, #pragma acc loop vector(256) /* threadIdx.x */
                  Generating reduction(+:sum)
           3, Generating present(ycoefs[:],xcoefs[:],row_offsets[:],Acoefs[:],cols[:])
           9, Loop is parallelizable

@@ -5,7 +5,7 @@ OpenACC code with code accelerated using other parallel programming languages,
 such as CUDA or OpenCL, or accelerated math libraries. This interoperability
 means that a developer can choose the programming paradigm that makes the most
 sense in the particular situation and leverage code and libraries that may
-already be available. Developers don't need to decide at the begining of a
+already be available. Developers don't need to decide at the beginning of a
 project between OpenACC *or* something else, they can choose to use OpenACC *and*
 other technologies.
 
@@ -54,7 +54,7 @@ as device pointers using the `host_data` region.
 ---
 
 ~~~~ {.fortran .numberLines}
-    !$acc data create(x,y)
+    !$acc data create(x) copyout(y)
     !$acc kernels
     X(:) = 1.0
     Y(:) = 0.0
@@ -63,7 +63,6 @@ as device pointers using the `host_data` region.
     !$acc host_data use_device(x,y)
     call cublassaxpy(N, 2.0, x, 1, y, 1)
     !$acc end host_data
-    !$acc update self(y)
     !$acc end data
 ~~~~
 
@@ -281,7 +280,7 @@ to memory regardless of whether it is accessed from the host or device, in CUDA
 6.0. In many ways managed memory is similar to OpenACC memory management, in
 that only a single reference to the memory is necessary and the runtime will
 handle the complexities of data movement. The advantage that managed memory
-sometimes has it that it is better able to handle complex data structures, such
+sometimes has is that it is better able to handle complex data structures, such
 as C++ classes or structures containing pointers, since pointer references are
 valid on both the host and the device. More information about CUDA Managed
 Memory can be obtained from NVIDIA. To use managed memory within an OpenACC
