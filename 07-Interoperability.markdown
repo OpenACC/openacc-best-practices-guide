@@ -153,7 +153,7 @@ region to an existing accelerated application. In this case the arrays may be
 managed outside of OpenACC and already exist on the device. For this case
 OpenACC provides the `deviceptr` data clause, which may be used where any data
 clause may appear. This clause informs the compiler that the variables
-specified are already device on the device and no other action needs to be
+specified are already on the device and no other action needs to be
 taken on them. The example below uses the `acc_malloc` function, which
 allocates device memory and returns a pointer, to allocate an array only on the
 device and then uses that array within an OpenACC region.
