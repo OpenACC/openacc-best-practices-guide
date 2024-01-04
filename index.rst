@@ -2,6 +2,8 @@ OpenACC Programming and Best Practices Guide
 ============================================
 
 .. toctree::
+   :maxdepth: 2
+
    01-Introduction
    02-Porting
    03-Analyze
