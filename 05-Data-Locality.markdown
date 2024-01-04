@@ -572,8 +572,7 @@ this calculation. Using the NVIDIA NSight Systems again, we see that each
 data transfers now only occur at the beginning and end of the data region and
 that the time between each iterations is much less. 
 
-![NVIDIA Nsight Systems showing a single iteration of the Jacobi solver after adding
-the OpenACC data region.](images/ch4_profile.png)
+![NVIDIA Nsight Systems showing a single iteration of the Jacobi solver after adding the OpenACC data region.](images/ch4_profile.png)
 
 Looking at the final performance of this code, we see that the time for the
 OpenACC code on a GPU is now much faster than even the best threaded CPU code.
@@ -581,8 +580,7 @@ Although only the `parallel loop` version is shown in the performance graph,
 the `kernels` version performs equally well once the `data` region has been
 added.
 
-![Runtime of Jacobi Iteration after adding OpenACC data
-region](images/jacobi_step2_graph.png)
+![Runtime of Jacobi Iteration after adding OpenACC data region](images/jacobi_step2_graph.png)
 
 This ends the Jacobi Iteration case study. The simplicity of this
 implementation generally shows very good speed-ups with OpenACC, often leaving
