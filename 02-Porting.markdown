@@ -136,8 +136,8 @@ developing on has a unified memory. This forces data locality to be a primary
 consideration in the refactoring and will ensure that the resulting code
 exploits hierarchical memories and is portable to a wide range of devices.
 
-Case Study - Jacobi Iteration
------------------------------
+### Case Study - Jacobi Iteration
+
 Throughout this guide we will use simple applications to demonstrate each step
 of the acceleration process. The first such application will solve the
 2D-Laplace equation with the iterative Jacobi solver. Iterative methods are a
