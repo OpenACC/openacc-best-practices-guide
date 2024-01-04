@@ -1,5 +1,5 @@
-CXX=pgc++
-CXXFLAGS=-fast -Minfo=all -ta=tesla
+CXX=nvc++
+CXXFLAGS=-fast -acc=gpu -Minfo=all
 
 mandelbrot.x: mandelbrot.o main.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
@@ -8,4 +8,4 @@ mandelbrot_solution.x: mandelbrot.o main_solution.o
 
 .PHONY: clean
 clean:
-	rm -f *.o core *.lst *.ptx *.pgprof *.cubin *.s *.x *.mod
+	rm -f *.o core *.lst *.ptx *.pgprof *.cubin *.s *.x *.mod *.nvprof

@@ -442,7 +442,7 @@ that should be used and is functionally equivalent to the
 ---
 
 ### Multi-device Programming Example ###
-As a example of multi-device programming, it's possible to further extend the
+As an example of multi-device programming, it's possible to further extend the
 mandelbrot example used previously to send different blocks of work to
 different accelerators. In order to make this work, it's necessary to ensure
 that device copies of the data are created on each device. We will do this by
@@ -455,7 +455,7 @@ necessary to allocate just the pertinent parts of the data on each accelerator.
 
 Once the data has been created on each device, a call to `acc_set_device_num()`
 in the blocking loop, using a simple modulus operation to select which device
-should receive each block, will sent blocks to different devices. 
+should receive each block, will send blocks to different devices.
 
 Lastly it's necessary to introduce a loop over devices to wait on each device
 to complete. Since the `wait` directive is per-device, the loop will once again

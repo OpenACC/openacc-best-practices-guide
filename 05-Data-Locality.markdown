@@ -308,7 +308,7 @@ copy constructor will be responsible for allocating space on the device for the
 class that it is creating, but it will also rely on data that is managed by the
 class being copied. Since OpenACC does not currently provide a
 portable way to copy from one array to another, like a `memcpy` on the host, a
-loop is used to copy each individual element to from one array to the other.
+loop is used to copy each individual element from one array to the other.
 Because we know that the `Data` object passed in will also have its members on
 the device, we use a `present` clause on the `parallel loop` to inform the
 compiler that no data movement is necessary.

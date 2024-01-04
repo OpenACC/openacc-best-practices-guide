@@ -5,7 +5,7 @@ OpenACC code with code accelerated using other parallel programming languages,
 such as CUDA or OpenCL, or accelerated math libraries. This interoperability
 means that a developer can choose the programming paradigm that makes the most
 sense in the particular situation and leverage code and libraries that may
-already be available. Developers don't need to decide at the begining of a
+already be available. Developers don't need to decide at the beginning of a
 project between OpenACC *or* something else, they can choose to use OpenACC *and*
 other technologies.
 
@@ -54,7 +54,7 @@ as device pointers using the `host_data` region.
 ---
 
 ~~~~ {.fortran .numberLines}
-    !$acc data create(x,y)
+    !$acc data create(x) copyout(y)
     !$acc kernels
     X(:) = 1.0
     Y(:) = 0.0
@@ -63,12 +63,86 @@ as device pointers using the `host_data` region.
     !$acc host_data use_device(x,y)
     call cublassaxpy(N, 2.0, x, 1, y, 1)
     !$acc end host_data
-    !$acc update self(y)
     !$acc end data
 ~~~~
 
 The call to `cublasSaxpy` can be changed to any function that expects device
 pointers as parameters.
+
+### Asynchronous Device Libraries
+***NOTE:*** When using the `host_data` region to pass data into asynchronous
+libraries calls or kernels care must be taken regarding the lifetime of data
+on the device. A common example of this pattern is passing device data to a
+device-aware MPI library, as illustrated below.  
+
+A common use of the `host_data` region is to pass device pointers into a
+device-aware MPI implementation. Such MPI libraries may have specific
+optimizations when passed device data, such as Remote Direct Memory Access
+(RDMA) or pipelining. For synchronous MPI routines, the `host_data` directive
+can be used just as shown above, but care must be taken when mixing this
+directive with asynchronous MPI functions (e.g. MPI_ISend, MPI_IRecv, etc.).
+Take for example the following code:
+
+~~~~ {.c .numberLines}
+    #pragma acc data copyin(buf)
+    { // Data in `buf` put on device
+    #pragma acc host_data use_device(buf)
+    { // Device pointer to `buf` passed to MPI
+       MPI_Isend(buf, ...);
+       // MPI_Isend immediatly returns to main thread
+    }
+    // MPI_Isend may not have completed sending data
+    } // Data in `buf` potentially removed from device
+~~~~
+
+~~~~ {.fortran .numberLines}
+    !$acc data copyin(buf)
+    ! Data in `buf` put on device
+    !$acc host_data use_device(buf)
+    ! Device pointer to `buf` passed to MPI
+       call MPI_Isend(buf, ...);
+       ! MPI_Isend immediatly returns to main thread
+    !$acc end host_data
+    ! MPI_Isend may not have completed sending data
+    !$acc end data
+    ! Data in `buf` potentially removed from device
+~~~~
+
+In the above example the device pointer to the data in `buf` is provided to `MPI_ISend`, 
+which will immediately return control to the thread of execution, even if the data has 
+not yet been sent. As such, when the end of the data region is reached, the device copy
+of `buf` may be deallocated before the MPI library has finished sending the data. This could 
+result in an application crash or the application proceeding, but sending garbage values. 
+To fix this issue, developers must issue an `MPI_Wait` before the end of the data region to ensure
+that it is safe to change or deallocate `buf`. The examples below demonstrate how to correctly
+use `host_data` with asynchronous MPI calls.
+
+~~~~ {.c .numberLines}
+    #pragma acc data copyin(buf)
+    { // Data in `buf` put on device
+    #pragma acc host_data use_device(buf)
+    { // Device pointer to `buf` passed to MPI
+       MPI_Isend(buf, ..., request);
+       // MPI_Isend immediatly returns to main thread
+    }
+    // Wait to ensure `buf` is safe to deallocate
+    MPI_Wait(request, ...);
+    } // Data in `buf` potentially removed from device
+~~~~
+
+~~~~ {.fortran .numberLines}
+    !$acc data copyin(buf)
+    ! Data in `buf` put on device
+    !$acc host_data use_device(buf)
+    ! Device pointer to `buf` passed to MPI
+       call MPI_Isend(buf, ...)
+       ! MPI_Isend immediatly returns to main thread
+    !$acc end host_data
+    ! Wait to ensure `buf` is safe to deallocate
+    call MPI_Wait(request, ...)
+    !$acc end data
+    ! Data in `buf` potentially removed from device
+~~~~
 
 Using Device Pointers
 ---------------------
@@ -78,7 +152,7 @@ region to an existing accelerated application. In this case the arrays may be
 managed outside of OpenACC and already exist on the device. For this case
 OpenACC provides the `deviceptr` data clause, which may be used where any data
 clause may appear. This clause informs the compiler that the variables
-specified are already device on the device and no other action needs to be
+specified are already on the device and no other action needs to be
 taken on them. The example below uses the `acc_malloc` function, which
 allocates device memory and returns a pointer, to allocate an array only on the
 device and then uses that array within an OpenACC region.
@@ -206,7 +280,7 @@ to memory regardless of whether it is accessed from the host or device, in CUDA
 6.0. In many ways managed memory is similar to OpenACC memory management, in
 that only a single reference to the memory is necessary and the runtime will
 handle the complexities of data movement. The advantage that managed memory
-sometimes has it that it is better able to handle complex data structures, such
+sometimes has is that it is better able to handle complex data structures, such
 as C++ classes or structures containing pointers, since pointer references are
 valid on both the host and the device. More information about CUDA Managed
 Memory can be obtained from NVIDIA. To use managed memory within an OpenACC

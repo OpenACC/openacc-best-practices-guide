@@ -7,7 +7,7 @@ performance analysis tool is outside of the scope of this document. The purpose
 of this section is to provide guidance on choosing important sections of code
 for acceleration, which is independent of the profiling tools available. 
 
-Throughout this guide, the NVIDIA Nsight Systems performance analysis tool which is provided with the CUDA toolkit, will be used for CPU profiling. When accelerator profiling is needed, the application will be run on an NVIDIA GPU and the NVIDIA Nsight Systems profiler will be again be used.
+Throughout this guide, the NVIDIA Nsight Systems performance analysis tool which is provided with the CUDA toolkit, will be used for CPU profiling. When accelerator profiling is needed, the application will be run on an NVIDIA GPU and the NVIDIA Nsight Systems profiler will be used again.
 
 Baseline Profiling
 ------------------
@@ -56,8 +56,8 @@ necessary to gather additional profile data to guide the next steps in the
 process. Some profiling tools, such as Nsight Systems and Vampir, support profiling on
 CPUs and GPUs, while other tools, such as gprof, may
 only support profiling on a particular platform. Additionally, some compilers
-build their own profiling into the application, such is the case with the PGI
-compiler, which supports setting the PGI\_ACC\_Time environment variable for 
+build their own profiling into the application, such is the case with the NVHPC
+compiler, which supports setting the NVCOMPILER\_ACC\_TIME environment variable for 
 gathering runtime information about the application. When developing on
 offloading platforms, such as CPU + GPU platforms, it's generally important to
 use a profiling tool throughout the development process that can evaluate both
@@ -75,7 +75,7 @@ compiler optimized the program is displayed. The executable is built with the
 following command:
 
 ~~~~
-    $ pgcc -fast -Minfo=all laplace2d.c
+    $ nvc -fast -Minfo=all laplace2d.c
     GetTimer:
          21, include "timer.h"
               61, FMA (fused multiply-add) instruction(s) generated
@@ -128,7 +128,7 @@ the application and select your file via the file manager.
 
 When we open the report in Nsight Systems, we see that the vast majority of
 the time is spent in two routines: main and \_\_c\_mcopy8. A screenshot of
-the initial screen for Nsight systems is show in figure 2.1. Since the code
+the initial screen for Nsight systems is shown in figure 2.1. Since the code
 for this case study is completely within the main function of the program,
 it's not surprising that nearly all of the time is spent in main, but in
 larger applications it's likely that the time will be spent in several other

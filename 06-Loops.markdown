@@ -124,7 +124,7 @@ one _worker_, which operates on a _vector_ of data.
 Mapping Parallelism to the Hardware
 -----------------------------------
 With some understanding of how the underlying accelerator hardware works it's
-possible to inform that compiler how it should map the loop iterations into
+possible to inform the compiler how it should map the loop iterations into
 parallelism on the hardware. It's worth restating that the more detail the
 compiler is given about how to map the parallelism onto a particular
 accelerator the less performance portable the code will be. For instance, 
@@ -219,7 +219,7 @@ form of the `num_gangs`, `num_workers`, and `vector_length` clauses to the
 ~~~~ {.fortran .numberLines}
     !$acc parallel loop gang vector_length(128)
     do j=1,M
-      !$acc loop vector(128)
+      !$acc loop vector
       do i=1,N
 ~~~~
 
@@ -398,7 +398,7 @@ achieving high performance.
 
 ***NOTE: Because this case study features optimization techniques, it is
 necessary to perform optimizations that may be beneficial on one hardware, but
-not on others. This case study was performed using the PGI 2020 compiler on an
+not on others. This case study was performed using the NVHPC 20.11 compiler on an
 NVIDIA Volta V100 GPU. These same techniques may apply on other architectures,
 particularly those similar to NVIDIA GPUs, but it will be necessary to make
 certain optimization decisions based on the particular accelerator in use.***
@@ -412,7 +412,7 @@ application.
     matvec(const matrix &, const vector &, const vector &):
           3, Generating Tesla code
               4, #pragma acc loop gang /* blockIdx.x */
-              9, #pragma acc loop vector(128) /* threadIdx.x */
+              9, #pragma acc loop vector(256) /* threadIdx.x */
                  Generating reduction(+:sum)
           3, Generating present(ycoefs[:],xcoefs[:],row_offsets[:],Acoefs[:],cols[:])
           9, Loop is parallelizable
@@ -485,7 +485,7 @@ parallelism to fill each *gang* with more of these short vectors. Below is the
 modified code.
 
 ~~~~ {.c .numberLines}
-    #pragma acc parallel loop gang worker num_workers(32) vector_length(32)
+    #pragma acc parallel loop gang worker num_workers(4) vector_length(32)
     for(int i=0;i<num_rows;i++) {
       double sum=0;
       int row_start=row_offsets[i];
@@ -520,18 +520,18 @@ modified code.
     enddo
 ~~~~
 
-In this version of the code, I've explicitly mapped the outermost look to both
+In this version of the code, I've explicitly mapped the outermost loop to both
 gang and worker parallelism and will vary the number of workers using the
 `num_workers` clause. The results follow.
 
 ![Speed-up from varying number of workers for a vector length of 32.](images/spmv_speedup_num_workers.png)
 
 On this particular hardware, the best performance comes from a vector length of
-32 and 32 workers. This turns out to be the maximum amount of parallelism that
-the particular accelerator being used supports within a gang. In this case, we
-observed a 1.3X speed-up from decreasing the vector length and another 2.1X
+32 and 4 workers, which is similar to the simpler loop with a default vector length of 128.
+In this case, we
+observed a 2.5X speed-up from decreasing the vector length and another 1.26X
 speed-up from varying the number of workers within each gang, resulting in an
-overall 2.9X performance improvement from the untuned OpenACC code.
+overall 3.15X performance improvement from the untuned OpenACC code.
 
 ***Best Practice:*** Although not shown in order to save space, it's generally
 best to use the `device_type` clause whenever specifying the sorts of

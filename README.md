@@ -1,29 +1,27 @@
+
 OpenACC Porting and Portability Guide
 =====================================
-This guide is written in Pandoc markdown format
-(http://johnmacfarlane.net/pandoc/README.html). 
 
-The build.bat file may be used to generate a PDF once Pandoc and a LaTex
-package are installed or the command may be modified to generate on
-another platform.
+This guide is written as a resource to OpenACC developers, regardless of
+experience level. It contains a proposed workflow when refactoring an existing
+application to use OpenACC. Examples are provided in C/C++ and Fortran. The
+current version can always be found [on
+GitHub](https://github.com/OpenACC/openacc-best-practices-guide). A PDF copy
+can also be found on the [OpenACC Website](https://openacc.org).
 
-General Build Instructions
---------------------------
-The included Makefile will use the `pandoc/latex:latest` docker image to 
-build the guide. This can be overriden to point to a local install of 
-`pandoc` by providing the `PANDOC` variable to the make command.
+Document Organization
+---------------------
 
-Windows Instructions
---------------------
-On Windows it is necessary to install the pandoc package and 
-MiKTeX (http://miktex.org/). The first time you build the pdf using
-build.bat, MiKTeX will need to install several dependencies. This will 
-only happen the first time the document is built.
+1. [Introduction](01-Introduction.markdown)
+2. [Porting](02-Porting.markdown)
+3. [Analyze](03-Analyze.markdown)
+4. [Parallelize](04-Parallelize.markdown)
+5. [Data Locality](05-Data-Locality.markdown)
+6. [Loop Optimization](06-Loops.markdown)
+7. [Interoperability](07-Interoperability.markdown)
+8. [Advanced Topics](08-Advanced.markdown)
 
-FIXME 
------
-* The implicit_figures feature is disabled until I can determine how to
-  make the figures inline rather than lumped together at the end. This
-  may simply be an issue of a different LaTeX -> PDF converter.
-* Need to look into installing filter for internal figure references.
-* Need to generate SVG diagrams instead of PNG.
+This guide is licensed under Creative Commons Attribution 4.0 International
+Public License and code examples are licensed under the Apache License 2.0,
+unless otherwise noted. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for
+details on how to contribute.

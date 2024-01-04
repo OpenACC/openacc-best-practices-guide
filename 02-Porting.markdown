@@ -9,7 +9,7 @@ debugging.
 ### OpenACC Directive Syntax ###
 This guide will introduce OpenACC directives incrementally, as they become
 useful for the porting process. All OpenACC directives have a common syntax,
-however, with the `acc` sentinal, designating to the compiler that the text
+however, with the `acc` sentinel, designating to the compiler that the text
 that follows will be OpenACC, a directive, and clauses to that directive, many
 of which are optional but provide the compiler with additional information. 
 
@@ -117,7 +117,7 @@ a long time and compute a significant amount work each. Modern GPUs and many-cor
 processors, however, are designed to execute fine-grained threads, which are
 short-lived and execute a minimal amount of work each. These parallel
 architectures achieve high throughput by trading single-threaded performance in
-favor of several orders in magnitude more parallelism. This means that when
+favor of more parallelism. This means that when
 accelerating an application with OpenACC, which was designed in light of 
 increased hardware parallelism, it may be necessary to refactor the code to
 favor tightly-nested loops with a significant amount of data reuse. In many
