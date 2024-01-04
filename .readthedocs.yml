@@ -16,5 +16,4 @@ python:
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
-  builder: singlehtml
   configuration: conf.py
