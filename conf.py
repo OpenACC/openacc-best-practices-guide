@@ -60,10 +60,10 @@ html_theme = 'default'
 html_static_path = ['images']
 
 #master_doc = 'openacc-guide'
-master_doc = '00-Title'
+master_doc = 'index'
 
 source_suffix = {
-#    '.rst': 'restructuredtext',
+    '.rst': 'restructuredtext',
 #    '.txt': 'markdown',
     '.markdown': 'markdown',
 #    '.md': 'markdown'

@@ -17,4 +17,4 @@ core
 openacc-guide.tex
 .vscode
 _build
-*.rst
+venv
