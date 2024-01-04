@@ -29,6 +29,7 @@ author = 'OpenACC.org'
 # ones.
 extensions = [
 #    'recommonmark'
+    'myst_parser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
