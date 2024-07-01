@@ -235,7 +235,7 @@ array named `tmp` that it uses during its calculation, then this variable must
 be made private to each loop iteration in order to ensure correct results. If
 `tmp` is not declared private, then threads executing different loop iterations
 may access this shared `tmp` variable in unpredictable ways, resulting in a
-race condition and potentially incorrect results. Below is the synax for the
+race condition and potentially incorrect results. Below is the syntax for the
 `private` clause.
 
     private(var1, var2, var3, ...)
