@@ -3,7 +3,7 @@ Optimize Loops
 Once data locality has been expressed, developers may wish to further tune the
 code for the hardware of interest. It's important to understand that the more
 loops are tuned for a particular type of hardware the less performance portable
-the code becomes to other architecures. If you're generally running on one
+the code becomes to other architectures. If you're generally running on one
 particular accelerator, however, there may be some gains to be had by tuning
 how the loops are mapped to the underlying hardware. 
 
@@ -93,7 +93,7 @@ takes to complete the painting will probably go down by another 4 times, but
 now there may be some other inefficencies. For instance, it's probably
 cheaper to buy large buckets of the paint, rather than small paint cans, so
 we'll store those buckets in a central location where everyone can access
-them. Now if a painter needs to refill their pan, they have to walk to get
+them. Now if a painter needs to refill their can, they have to walk to get
 their paint, which takes away from the time they're painting. Here's an idea,
 let's organize our 16 painters into 4 groups of 4 painters, each of which has
 their own bucket to share. Now so long as the painters within each crew is
@@ -106,7 +106,7 @@ finest-grained level may not be completely obvious, but it's the size of the
 roller. The width of the roller dictates how much wall the painter can paint
 with each stroke. Wider rollers mean more wall per stroke, up to some limit.
 Next there are parallel painters within each crew. These painters can work
-mostly independently of each other, but occaisionally need to access their
+mostly independently of each other, but occasionally need to access their
 shared paint bucket or coordinate the next, near-by piece of work to do.
 Finally, there's our crews, which can work completely independently of each
 other and might even work at different times (think, day shift and night
