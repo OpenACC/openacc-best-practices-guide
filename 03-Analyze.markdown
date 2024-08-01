@@ -134,8 +134,7 @@ it's not surprising that nearly all of the time is spent in main, but in
 larger applications it's likely that the time will be spent in several other
 routines.
 
-![Nsight initial profile window showing 81% of runtime in main and 17% in a
-memory copy routine.](images/ch2-nsight-initial.png)
+![Nsight initial profile window showing 81% of runtime in main and 17% in a memory copy routine.](images/ch2-nsight-initial.png)
 
 Clicking into the main function we can see that nearly all of the runtime
 within main comes from the loop that calculates the next value for A. This is

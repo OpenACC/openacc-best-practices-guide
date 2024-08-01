@@ -22,4 +22,4 @@ outline.pdf: outline.markdown
 all: openacc-guide.pdf 
 
 clean:
-	rm -f outline.pdf openacc-guide.pdf openacc-guide.doc openacc-guide.tex openacc-guide.html outline.pdf
+	-rm -rf outline.pdf openacc-guide.pdf openacc-guide.doc openacc-guide.tex openacc-guide.html openacc-guide.rst outline.pdf _build

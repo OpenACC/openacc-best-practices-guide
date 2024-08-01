@@ -472,8 +472,7 @@ value for my accelerator by modifying the `vector_length` clause. Below is a gra
 showing the relative speed-up of varying the vector length
 compared to the compiler-selected value.
 
-![Relative speed-up from varying vector_length from the default value of
-128](images/spmv_speedup_vector_length.png)
+![Relative speed-up from varying vector_length from the default value of 128](images/spmv_speedup_vector_length.png)
 
 Notice that the best performance comes from the smallest vector length. Again,
 this is because the number of non-zeros per row is very small, so a small
@@ -525,8 +524,7 @@ In this version of the code, I've explicitly mapped the outermost loop to both
 gang and worker parallelism and will vary the number of workers using the
 `num_workers` clause. The results follow.
 
-![Speed-up from varying number of workers for a vector length of
-32.](images/spmv_speedup_num_workers.png)
+![Speed-up from varying number of workers for a vector length of 32.](images/spmv_speedup_num_workers.png)
 
 On this particular hardware, the best performance comes from a vector length of
 32 and 4 workers, which is similar to the simpler loop with a default vector length of 128.

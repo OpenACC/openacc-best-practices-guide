@@ -235,7 +235,7 @@ array named `tmp` that it uses during its calculation, then this variable must
 be made private to each loop iteration in order to ensure correct results. If
 `tmp` is not declared private, then threads executing different loop iterations
 may access this shared `tmp` variable in unpredictable ways, resulting in a
-race condition and potentially incorrect results. Below is the synax for the
+race condition and potentially incorrect results. Below is the syntax for the
 `private` clause.
 
     private(var1, var2, var3, ...)
@@ -653,9 +653,7 @@ used to understand the application peformance. The screenshot in figure 3.2
 shows Nsight Systems profile for ***2*** iterations of the convergence loop in
 the `parallel loop` version of the code.
 
-![Screenshot of NVIDIA Nsight Systems Profile on 2 steps of the Jacobi Iteration
-showing a high amount of data transfer compared to
-computation.](images/ch3_profile.png) 
+![Screenshot of NVIDIA Nsight Systems Profile on 2 steps of the Jacobi Iteration showing a high amount of data transfer compared to computation.](images/ch3_profile.png) 
 
 Since the test machine has two distinct memory spaces, one for the CPU and one
 for the GPU, it's necessary to copy data between the two memories. In this
