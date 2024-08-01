@@ -89,7 +89,7 @@ Take for example the following code:
     #pragma acc host_data use_device(buf)
     { // Device pointer to `buf` passed to MPI
        MPI_Isend(buf, ...);
-       // MPI_Isend immediatly returns to main thread
+       // MPI_Isend immediately returns to main thread
     }
     // MPI_Isend may not have completed sending data
     } // Data in `buf` potentially removed from device
@@ -101,7 +101,7 @@ Take for example the following code:
     !$acc host_data use_device(buf)
     ! Device pointer to `buf` passed to MPI
        call MPI_Isend(buf, ...);
-       ! MPI_Isend immediatly returns to main thread
+       ! MPI_Isend immediately returns to main thread
     !$acc end host_data
     ! MPI_Isend may not have completed sending data
     !$acc end data
@@ -123,7 +123,7 @@ use `host_data` with asynchronous MPI calls.
     #pragma acc host_data use_device(buf)
     { // Device pointer to `buf` passed to MPI
        MPI_Isend(buf, ..., request);
-       // MPI_Isend immediatly returns to main thread
+       // MPI_Isend immediately returns to main thread
     }
     // Wait to ensure `buf` is safe to deallocate
     MPI_Wait(request, ...);
@@ -136,7 +136,7 @@ use `host_data` with asynchronous MPI calls.
     !$acc host_data use_device(buf)
     ! Device pointer to `buf` passed to MPI
        call MPI_Isend(buf, ...)
-       ! MPI_Isend immediatly returns to main thread
+       ! MPI_Isend immediately returns to main thread
     !$acc end host_data
     ! Wait to ensure `buf` is safe to deallocate
     call MPI_Wait(request, ...)
