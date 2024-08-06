@@ -20,10 +20,11 @@ Pygments==2.18.0
 pyproject_hooks==1.1.0
 pytz==2024.1
 PyYAML==6.0.1
+readthedocs-sphinx-ext==2.2.5
 requests==2.32.3
 snowballstemmer==2.2.0
 Sphinx==8.0.2
-sphinx-rtd-theme==2.0.0
+sphinx-rtd-theme==0.5.1
 sphinxcontrib-applehelp==2.0.0
 sphinxcontrib-devhelp==2.0.0
 sphinxcontrib-htmlhelp==2.1.0
