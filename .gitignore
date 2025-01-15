@@ -18,4 +18,5 @@ openacc-guide.tex
 .vscode
 _build
 venv
+.venv
 html/
