@@ -481,6 +481,85 @@ reduce the cost of the second kernel launch.
 parallelism, there is no similar technique for `kernels`, but the `parallel`
 approach above can be easily placed between `kernels` regions.*
 
+Best Practice: Dealing with C++ End/Last Pointers
+-------------------------------------------------
+It is a common practice for list/array-like objects in C++ to store two 
+pointers, one to the first element and one that points to a memory address
+immediately following the last element. This pattern can be found in the
+C++ Standard Template Library, for instance. Below is an example:
+
+```cpp
+  const size_t N = 1024;
+  float *first = (float*)malloc(N * sizeof(float));
+  float *last = first + N; // Beyond the allocated memory
+```
+
+This pattern works fine on machines with a single address space, however can
+be problematic on machines with discrete host and device memory spaces. 
+The default behavior for scalar pointer variables used in `parallel` or
+`serial` regions is to treat the pointer implicitly as-if it had appeared
+in a `firstprivate` clause. Consider the following code, however, which
+would break on a discrete memory machine.
+
+```cpp
+#pragma acc parallel loop copy(first[0:1024])
+  for (int i = 0; i < 1024 ; i++)
+  {
+    // first is a device address
+    // last is a host address
+    if ( first != last )
+    {
+      first[i] = (float)i;
+    }
+  }
+```
+
+Because `first` has been copied to the device, within the `parallel` region
+the device address will be used, but since `last` is implicitly firstprivate
+it will contain the host address. The `last` pointer does not actually point 
+to any data and must remain relative to `first` in device memory, so 
+attempting to copy it doesn't make sense. There is an unintuitive solution
+to this problem, however.
+
+```cpp
+#include <cstdio>
+#include <cstdlib>
+int main(int argc, char **argv)
+{
+  float *first = (float*)malloc(1024 * sizeof(float));
+  float *last = first + 1024;
+  #pragma acc parallel loop copy(first[0:1024]) copy(last[-1:0])
+  for (int i = 0; i < 1024 ; i++)
+  {
+    if ( first != last )
+    {
+      first[i] = (float)i;
+    }
+  }
+  printf("[%d] %f : [%d] %f\n", 0, first[0], 1023, first[1023]);
+  free(first);
+  return 0;
+}
+```
+
+In this example we are copying the element immediately before `last`
+and copying zero elements. This may be surprising, since C++ does not
+have arbitrary array bounds and copying zero elements seems nonsensical.
+What happens, however, is that a present table entry is created for
+`last` and, because we're saying to copy the element before `last`, 
+we're copying data that is already present on the device (which is defined
+as not copying any additional data). With this change, both `first`
+and `last` will use device addresses and will be relative to the same
+base address. 
+
+***Note:*** As-written this code assumes that the data clauses are 
+evaluated from left to right, which is not strictly required. If processed
+from right to left the overlap between the two regions would likely 
+result in a partially present error, since some of the memory already 
+exists in the present table. At the time of writing OpenACC 3.4 is the
+current version and defining more tightly the order of operations to 
+prevent this issue is a deferred topic.
+
 Case Study - Optimize Data Locality
 -----------------------------------
 By the end of the last chapter we had moved the main computational loops of
